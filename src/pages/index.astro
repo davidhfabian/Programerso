@@ -1,0 +1,136 @@
+---
+export const prerender = true;
+
+import Layout from '~/layouts/Layout.astro';
+import { Icon } from 'astro-icon/components';
+import { courses, totalLessons, totalMinutes } from '~/data/learn';
+
+const features = [
+  {
+    icon: 'tabler:cursor-text',
+    title: 'Autocompletado guiado',
+    text: 'El editor te muestra exactamente qué poner. Aceptás con Tab y aprendés la sintaxis sin memorizar.',
+  },
+  {
+    icon: 'tabler:bulb',
+    title: 'Cada término, explicado',
+    text: 'Pasá el cursor por cualquier palabra subrayada y leé qué significa, justo cuando la necesitás.',
+  },
+  {
+    icon: 'tabler:player-play',
+    title: 'Se ejecuta de verdad',
+    text: 'Tu código corre en el navegador y ves la salida real en la consola. Probás, fallás y aprendés.',
+  },
+];
+---
+
+<Layout>
+  <!-- Hero -->
+  <section class="max-w-5xl mx-auto px-4 sm:px-6 pt-20 md:pt-28 pb-10 text-center">
+    <span
+      class="inline-block font-mono text-[0.72rem] uppercase tracking-[0.2em] text-[var(--aw-color-text-tertiary)] mb-5"
+      >Cursos interactivos</span
+    >
+    <h1
+      class="font-heading font-semibold tracking-tight text-default leading-[1.05] text-4xl md:text-6xl mb-5 motion-safe:animate-fade"
+    >
+      Aprendé a programar<br /> escribiendo código real
+    </h1>
+    <p class="max-w-2xl mx-auto text-base md:text-lg text-muted leading-relaxed">
+      Desde cero, sin instalar nada. El editor te sugiere qué escribir, te explica cada término al instante y ejecuta tu
+      programa de verdad.
+    </p>
+  </section>
+
+  <section class="max-w-5xl mx-auto px-4 sm:px-6 pb-16 md:pb-24">
+    <!-- Cómo funciona -->
+    <div class="grid sm:grid-cols-3 gap-4 mb-12">
+      {
+        features.map((f) => (
+          <div class="rounded-xl border border-[var(--aw-color-border)] bg-[var(--aw-color-bg-surface)] p-5">
+            <Icon name={f.icon} class="w-5 h-5 text-[var(--aw-color-text-muted)] mb-3" />
+            <h3 class="text-sm font-semibold text-default mb-1">{f.title}</h3>
+            <p class="text-sm text-muted leading-relaxed">{f.text}</p>
+          </div>
+        ))
+      }
+    </div>
+
+    <h2 class="font-heading text-2xl md:text-3xl font-semibold tracking-tight text-default mb-6">Elegí tu lenguaje</h2>
+
+    <div class="grid sm:grid-cols-2 gap-5">
+      {
+        courses.map((course) => (
+          <a
+            href={`/${course.slug}`}
+            class="ct-course group relative block rounded-2xl border border-[var(--aw-color-border)] bg-[var(--aw-color-bg-surface)] p-6 transition-all duration-200 hover:border-[var(--aw-color-border-hover)]"
+            data-course={course.slug}
+          >
+            <div class="flex items-start justify-between mb-4">
+              <Icon name={course.icon} class="w-9 h-9 text-default" />
+              <span class="font-mono text-[0.7rem] text-[var(--aw-color-text-tertiary)] uppercase tracking-wider">
+                {course.tagline}
+              </span>
+            </div>
+            <h3 class="font-heading text-xl font-semibold tracking-tight text-default mb-2">{course.title}</h3>
+            <p class="text-sm text-muted leading-relaxed mb-5">{course.description}</p>
+
+            <div class="flex items-center gap-4 font-mono text-[0.72rem] text-[var(--aw-color-text-tertiary)] mb-4">
+              <span class="inline-flex items-center gap-1.5">
+                <Icon name="tabler:books" class="w-3.5 h-3.5" />
+                {totalLessons(course)} lecciones
+              </span>
+              <span class="inline-flex items-center gap-1.5">
+                <Icon name="tabler:clock" class="w-3.5 h-3.5" />~{totalMinutes(course)} min
+              </span>
+            </div>
+
+            {/* Barra de progreso (se completa desde localStorage) */}
+            <div class="ct-course-progress" data-total={totalLessons(course)}>
+              <div class="h-[3px] rounded-full bg-[var(--aw-color-border)] overflow-hidden">
+                <div class="ct-course-fill h-full w-0 rounded-full bg-primary transition-[width] duration-500" />
+              </div>
+              <span class="ct-course-meta mt-2 block font-mono text-[0.7rem] text-[var(--aw-color-text-tertiary)]">
+                Sin empezar
+              </span>
+            </div>
+
+            <span class="mt-5 inline-flex items-center gap-1.5 text-sm font-medium text-default">
+              Empezar
+              <Icon
+                name="tabler:arrow-right"
+                class="w-4 h-4 transition-transform duration-200 group-hover:translate-x-1"
+              />
+            </span>
+          </a>
+        ))
+      }
+    </div>
+  </section>
+</Layout>
+
+<script>
+  // Pinta el progreso de cada curso desde localStorage (lecciones completadas).
+  function paintProgress() {
+    document.querySelectorAll<HTMLElement>('.ct-course').forEach((card) => {
+      const slug = card.dataset.course;
+      const wrap = card.querySelector<HTMLElement>('.ct-course-progress');
+      if (!slug || !wrap) return;
+      const total = Number(wrap.dataset.total || '0');
+      let done = 0;
+      try {
+        done = new Set<string>(JSON.parse(localStorage.getItem(`ct:done:${slug}`) || '[]')).size;
+      } catch {
+        done = 0;
+      }
+      const pct = total ? Math.round((done / total) * 100) : 0;
+      const fill = wrap.querySelector<HTMLElement>('.ct-course-fill');
+      const meta = wrap.querySelector<HTMLElement>('.ct-course-meta');
+      if (fill) fill.style.width = `${pct}%`;
+      if (meta) meta.textContent = done === 0 ? 'Sin empezar' : `${done}/${total} lecciones completadas`;
+    });
+  }
+  document.addEventListener('astro:page-load', paintProgress);
+  if (document.readyState !== 'loading') paintProgress();
+  else document.addEventListener('DOMContentLoaded', paintProgress);
+</script>

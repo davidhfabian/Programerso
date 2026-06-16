@@ -1,0 +1,1011 @@
+---
+// Editor-tutor interactivo. Guía al alumno paso a paso: muestra qué escribir con
+// autocompletado fantasma (ghost text + Tab), explica términos del glosario en
+// tooltips, valida cada línea y ejecuta el programa acumulado de verdad en el
+// navegador (JS nativo / Python con Pyodide). El progreso se guarda en localStorage.
+import type { Lesson, LearnLanguage } from '~/data/learn';
+import { glossary as glossaryAll, lessonGlossary } from '~/data/learn';
+
+export interface Props {
+  lesson: Lesson;
+  language: LearnLanguage;
+  runtimeLabel: string;
+  courseSlug: string;
+}
+
+const { lesson, language, runtimeLabel, courseSlug } = Astro.props;
+
+// Renderiza [[clave]] o [[clave|texto]] como un botón de glosario.
+function renderExplanation(text: string): string {
+  return text.replace(/\[\[([^\]|]+)(?:\|([^\]]*))?\]\]/g, (_m, rawKey: string, display?: string) => {
+    const key = rawKey.trim().toLowerCase();
+    const label = (display ?? glossaryAll[key]?.term ?? rawKey).trim();
+    return `<button type="button" class="ct-term" data-term="${key}">${label}</button>`;
+  });
+}
+
+const payload = {
+  language,
+  runtimeLabel,
+  courseSlug,
+  lessonSlug: lesson.slug,
+  glossary: lessonGlossary(lesson),
+  steps: lesson.steps.map((s) => ({
+    instruction: s.instruction,
+    explanationHtml: renderExplanation(s.explanation),
+    solution: s.solution,
+    hint: s.hint ?? '',
+  })),
+};
+
+const json = JSON.stringify(payload).replace(/</g, '\\u003c');
+const stepCount = lesson.steps.length;
+---
+
+<section class="ct" data-ct data-course={courseSlug} data-lesson={lesson.slug} aria-label="Editor interactivo">
+  <script type="application/json" data-ct-data is:inline set:html={json} />
+
+  <div class="ct-grid">
+    {/* ── Panel guía ───────────────────────────────────────────── */}
+    <aside class="ct-guide">
+      <div class="ct-progress">
+        <div class="ct-progress-meta">
+          <span class="ct-progress-label">Paso <span data-ct-step-num>1</span> / {stepCount}</span>
+          <span class="ct-progress-pct" data-ct-pct>0%</span>
+        </div>
+        <div class="ct-progress-track" role="progressbar" aria-label="Progreso de la lección">
+          <div class="ct-progress-fill" data-ct-fill></div>
+        </div>
+      </div>
+
+      <p class="ct-instruction" data-ct-instruction></p>
+      <div class="ct-explanation" data-ct-explanation></div>
+
+      <div class="ct-suggest" data-ct-suggest hidden>
+        <span class="ct-suggest-label">Siguiente:</span>
+        <button type="button" class="ct-suggest-chip" data-ct-suggest-chip></button>
+        <span class="ct-suggest-tab">o <kbd>Tab</kbd></span>
+      </div>
+
+      <div class="ct-hint" data-ct-hint hidden></div>
+
+      <div class="ct-actions">
+        <button type="button" class="ct-btn ct-btn-ghost" data-ct-hint-btn>Pista</button>
+        <button type="button" class="ct-btn ct-btn-primary" data-ct-check>Comprobar</button>
+      </div>
+    </aside>
+
+    {/* ── Editor + consola ─────────────────────────────────────── */}
+    <div class="ct-editor">
+      <div class="ct-toolbar">
+        <span class="ct-dots" aria-hidden="true"><span></span><span></span><span></span></span>
+        <span class="ct-runtime font-mono">{runtimeLabel} · lección.{language === 'python' ? 'py' : 'js'}</span>
+        <button type="button" class="ct-reset" data-ct-reset title="Reiniciar lección" aria-label="Reiniciar lección">
+          ↺
+        </button>
+      </div>
+
+      <div class="ct-code" data-ct-code>
+        <div class="ct-accepted font-mono" data-ct-accepted></div>
+        <div class="ct-active font-mono" data-ct-active-wrap>
+          <span class="ct-gutter" aria-hidden="true">›</span>
+          <div class="ct-field">
+            <div class="ct-mirror" aria-hidden="true"><span class="ct-typed"></span><span class="ct-ghost"></span></div>
+            <input
+              class="ct-input"
+              data-ct-input
+              type="text"
+              spellcheck="false"
+              autocomplete="off"
+              autocapitalize="off"
+              autocorrect="off"
+              aria-label="Escribí el código de este paso"
+            />
+          </div>
+        </div>
+      </div>
+
+      <div class="ct-console">
+        <div class="ct-console-head font-mono">
+          <span>salida</span>
+          <button type="button" class="ct-run" data-ct-run hidden>▶ Ejecutar</button>
+        </div>
+        <pre class="ct-console-out font-mono" data-ct-out aria-live="polite"></pre>
+      </div>
+    </div>
+  </div>
+
+  {/* ── Estado completado ──────────────────────────────────────── */}
+  <div class="ct-done" data-ct-done hidden>
+    <span class="ct-done-check" aria-hidden="true">✓</span>
+    <div>
+      <p class="ct-done-title">¡Lección completada!</p>
+      <p class="ct-done-sub" data-ct-done-sub>Ya podés editar el programa libremente y ejecutarlo.</p>
+    </div>
+  </div>
+
+  {/* Tooltip de glosario compartido */}
+  <div class="ct-tip" data-ct-tip role="tooltip" hidden>
+    <span class="ct-tip-term" data-ct-tip-term></span>
+    <span class="ct-tip-def" data-ct-tip-def></span>
+  </div>
+</section>
+
+<style>
+  .ct {
+    --ct-accent: var(--aw-color-primary);
+    position: relative;
+    border: 1px solid var(--aw-color-border);
+    border-radius: 14px;
+    background: var(--aw-color-bg-surface);
+    overflow: hidden;
+  }
+
+  .ct-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+  }
+  @media (min-width: 900px) {
+    .ct-grid {
+      grid-template-columns: minmax(0, 0.92fr) minmax(0, 1.08fr);
+    }
+  }
+
+  /* ── Guía ─────────────────────────────────────────────────── */
+  .ct-guide {
+    padding: 1.25rem 1.35rem;
+    border-bottom: 1px solid var(--aw-color-border);
+  }
+  @media (min-width: 900px) {
+    .ct-guide {
+      border-bottom: none;
+      border-right: 1px solid var(--aw-color-border);
+    }
+  }
+
+  .ct-progress {
+    margin-bottom: 1.1rem;
+  }
+  .ct-progress-meta {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    font-family: var(--font-geist-mono);
+    font-size: 0.72rem;
+    letter-spacing: 0.02em;
+    color: var(--aw-color-text-tertiary);
+    margin-bottom: 0.45rem;
+  }
+  .ct-progress-pct {
+    font-variant-numeric: tabular-nums;
+  }
+  .ct-progress-track {
+    height: 3px;
+    border-radius: 999px;
+    background: var(--aw-color-border);
+    overflow: hidden;
+  }
+  .ct-progress-fill {
+    height: 100%;
+    width: 0;
+    border-radius: 999px;
+    background: var(--ct-accent);
+    transition: width 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  .ct-instruction {
+    font-size: 1.02rem;
+    font-weight: 600;
+    line-height: 1.4;
+    letter-spacing: -0.01em;
+    color: var(--aw-color-text-default);
+    margin: 0 0 0.6rem;
+  }
+  .ct-explanation {
+    font-size: 0.9rem;
+    line-height: 1.6;
+    color: var(--aw-color-text-muted);
+  }
+  .ct-explanation :global(code) {
+    font-family: var(--font-geist-mono);
+    font-size: 0.82em;
+    padding: 0.08em 0.35em;
+    border-radius: 5px;
+    background: var(--aw-color-bg-page);
+    border: 1px solid var(--aw-color-border);
+    color: var(--aw-color-text-default);
+  }
+  .ct-explanation :global(strong) {
+    color: var(--aw-color-text-default);
+    font-weight: 600;
+  }
+
+  /* Término de glosario */
+  .ct-explanation :global(.ct-term) {
+    font: inherit;
+    color: var(--aw-color-text-default);
+    border: none;
+    background: none;
+    padding: 0;
+    cursor: help;
+    border-bottom: 1px dashed var(--turquoise-border);
+    transition: color 0.2s ease;
+  }
+  .ct-explanation :global(.ct-term:hover),
+  .ct-explanation :global(.ct-term:focus-visible) {
+    color: var(--ct-accent);
+    outline: none;
+  }
+
+  .ct-suggest {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 0.4rem;
+    margin-top: 1rem;
+    font-size: 0.78rem;
+    color: var(--aw-color-text-tertiary);
+  }
+  .ct-suggest-chip {
+    font-family: var(--font-geist-mono);
+    font-size: 0.78rem;
+    color: var(--aw-color-text-default);
+    background: var(--aw-color-bg-page);
+    border: 1px solid var(--aw-color-border-hover);
+    border-radius: 6px;
+    padding: 0.2rem 0.5rem;
+    cursor: pointer;
+    transition: all 0.18s ease;
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .ct-suggest-chip:hover {
+    border-color: var(--ct-accent);
+    box-shadow: 0 0 0 1px var(--turquoise-border);
+  }
+  .ct-suggest-tab kbd {
+    font-family: var(--font-geist-mono);
+    font-size: 0.68rem;
+    border: 1px solid var(--aw-color-border-hover);
+    border-radius: 4px;
+    padding: 0.05rem 0.3rem;
+  }
+
+  .ct-hint {
+    margin-top: 0.9rem;
+    font-size: 0.83rem;
+    line-height: 1.5;
+    color: var(--aw-color-text-muted);
+    padding: 0.6rem 0.75rem;
+    border-left: 2px solid var(--turquoise-border);
+    background: var(--turquoise-bg);
+    border-radius: 0 6px 6px 0;
+  }
+
+  .ct-actions {
+    display: flex;
+    gap: 0.55rem;
+    margin-top: 1.2rem;
+  }
+  .ct-btn {
+    font-family: var(--font-geist-sans);
+    font-size: 0.85rem;
+    font-weight: 500;
+    border-radius: 8px;
+    padding: 0.5rem 1rem;
+    cursor: pointer;
+    border: 1px solid transparent;
+    transition: all 0.18s ease;
+  }
+  .ct-btn-ghost {
+    background: transparent;
+    color: var(--aw-color-text-muted);
+    border-color: var(--aw-color-border);
+  }
+  .ct-btn-ghost:hover {
+    color: var(--aw-color-text-default);
+    border-color: var(--aw-color-border-hover);
+  }
+  .ct-btn-primary {
+    background: var(--aw-color-bg-page);
+    color: var(--aw-color-text-default);
+    border-color: var(--aw-color-border-hover);
+    position: relative;
+  }
+  .ct-btn-primary:hover {
+    border-color: var(--ct-accent);
+    box-shadow: 0 0 18px var(--turquoise-glow);
+  }
+
+  /* ── Editor ───────────────────────────────────────────────── */
+  .ct-editor {
+    display: flex;
+    flex-direction: column;
+    background: var(--aw-color-bg-page);
+    min-width: 0;
+  }
+  .ct-toolbar {
+    display: flex;
+    align-items: center;
+    gap: 0.7rem;
+    padding: 0.6rem 0.9rem;
+    border-bottom: 1px solid var(--aw-color-border);
+  }
+  .ct-dots {
+    display: inline-flex;
+    gap: 6px;
+  }
+  .ct-dots span {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: var(--aw-color-border-hover);
+  }
+  .ct-runtime {
+    font-size: 0.74rem;
+    color: var(--aw-color-text-tertiary);
+    flex: 1;
+  }
+  .ct-reset {
+    background: none;
+    border: none;
+    color: var(--aw-color-text-tertiary);
+    font-size: 1.05rem;
+    line-height: 1;
+    cursor: pointer;
+    padding: 0.2rem 0.4rem;
+    border-radius: 6px;
+    transition: color 0.18s ease;
+  }
+  .ct-reset:hover {
+    color: var(--aw-color-text-default);
+  }
+
+  .ct-code {
+    padding: 0.85rem 0.5rem 0.85rem 0;
+    min-height: 168px;
+    font-size: 0.86rem;
+    line-height: 1.75;
+    overflow-x: auto;
+  }
+  .ct-line,
+  .ct-active {
+    display: flex;
+    align-items: flex-start;
+    white-space: pre;
+  }
+  .ct-ln {
+    flex: 0 0 2.4rem;
+    text-align: right;
+    padding-right: 0.85rem;
+    color: var(--aw-color-text-tertiary);
+    opacity: 0.55;
+    user-select: none;
+  }
+  .ct-line-code {
+    color: var(--aw-color-text-default);
+    white-space: pre;
+  }
+  .ct-line-check {
+    margin-left: 0.6rem;
+    color: var(--ct-accent);
+  }
+
+  .ct-active {
+    position: relative;
+  }
+  .ct-gutter {
+    flex: 0 0 2.4rem;
+    text-align: right;
+    padding-right: 0.85rem;
+    color: var(--ct-accent);
+    user-select: none;
+  }
+  .ct-field {
+    position: relative;
+    flex: 1;
+    min-width: 0;
+  }
+  .ct-mirror,
+  .ct-input {
+    font-family: var(--font-geist-mono);
+    font-size: 0.86rem;
+    line-height: 1.75;
+    white-space: pre;
+    padding: 0;
+    margin: 0;
+    border: none;
+  }
+  .ct-mirror {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    overflow: hidden;
+  }
+  .ct-typed {
+    color: var(--aw-color-text-default);
+  }
+  .ct-ghost {
+    color: var(--aw-color-text-tertiary);
+    opacity: 0.6;
+  }
+  .ct-input {
+    position: relative;
+    width: 100%;
+    background: transparent;
+    color: transparent;
+    caret-color: var(--ct-accent);
+    outline: none;
+  }
+  .ct-field.is-mismatch .ct-typed {
+    color: #ef4444;
+  }
+  .ct-active.is-shake {
+    animation: ct-shake 0.4s ease-in-out;
+  }
+  @keyframes ct-shake {
+    0%,
+    100% {
+      transform: translateX(0);
+    }
+    25% {
+      transform: translateX(-4px);
+    }
+    75% {
+      transform: translateX(4px);
+    }
+  }
+
+  /* ── Consola ──────────────────────────────────────────────── */
+  .ct-console {
+    border-top: 1px solid var(--aw-color-border);
+    background: var(--aw-color-bg-surface);
+  }
+  .ct-console-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 0.7rem;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--aw-color-text-tertiary);
+    padding: 0.5rem 0.9rem;
+    border-bottom: 1px solid var(--aw-color-border);
+  }
+  .ct-run {
+    font-family: var(--font-geist-mono);
+    font-size: 0.72rem;
+    text-transform: none;
+    letter-spacing: 0;
+    color: var(--aw-color-text-muted);
+    background: none;
+    border: 1px solid var(--aw-color-border);
+    border-radius: 6px;
+    padding: 0.15rem 0.5rem;
+    cursor: pointer;
+  }
+  .ct-run:hover {
+    color: var(--ct-accent);
+    border-color: var(--ct-accent);
+  }
+  .ct-console-out {
+    margin: 0;
+    padding: 0.75rem 0.9rem;
+    min-height: 2.6rem;
+    max-height: 11rem;
+    overflow: auto;
+    font-size: 0.8rem;
+    line-height: 1.6;
+    color: var(--aw-color-text-muted);
+    white-space: pre-wrap;
+    word-break: break-word;
+  }
+  .ct-out-err {
+    color: #ef4444;
+  }
+  .ct-out-muted {
+    color: var(--aw-color-text-tertiary);
+    font-style: italic;
+  }
+
+  /* ── Completado ───────────────────────────────────────────── */
+  .ct-done {
+    display: flex;
+    align-items: center;
+    gap: 0.9rem;
+    padding: 1rem 1.35rem;
+    border-top: 1px solid var(--aw-color-border);
+    background: var(--turquoise-bg);
+    animation: fadeIn 0.5s ease both;
+  }
+  .ct-done-check {
+    flex: 0 0 auto;
+    width: 1.9rem;
+    height: 1.9rem;
+    display: grid;
+    place-items: center;
+    border-radius: 50%;
+    border: 1px solid var(--turquoise-border);
+    color: var(--ct-accent);
+    font-size: 0.95rem;
+  }
+  .ct-done-title {
+    font-weight: 600;
+    color: var(--aw-color-text-default);
+    margin: 0;
+  }
+  .ct-done-sub {
+    font-size: 0.83rem;
+    color: var(--aw-color-text-muted);
+    margin: 0.1rem 0 0;
+  }
+
+  /* ── Tooltip ──────────────────────────────────────────────── */
+  .ct-tip {
+    position: fixed;
+    z-index: 60;
+    max-width: 280px;
+    padding: 0.6rem 0.75rem;
+    border-radius: 8px;
+    background: var(--aw-color-bg-page);
+    border: 1px solid var(--aw-color-border-hover);
+    box-shadow: 0 8px 30px rgba(0, 0, 0, 0.25);
+    pointer-events: none;
+    animation: ct-tip-in 0.16s ease both;
+  }
+  @keyframes ct-tip-in {
+    from {
+      opacity: 0;
+      transform: translateY(4px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+  .ct-tip-term {
+    display: block;
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--ct-accent);
+    margin-bottom: 0.2rem;
+  }
+  .ct-tip-def {
+    display: block;
+    font-size: 0.82rem;
+    line-height: 1.5;
+    color: var(--aw-color-text-default);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .ct-progress-fill,
+    .ct-active.is-shake,
+    .ct-done,
+    .ct-tip {
+      animation: none !important;
+      transition: none !important;
+    }
+  }
+</style>
+
+<script>
+  // ── Tipos del payload ──────────────────────────────────────────
+  type Step = { instruction: string; explanationHtml: string; solution: string; hint: string };
+  type GlossaryMap = Record<string, { term: string; definition: string }>;
+  type Payload = {
+    language: 'javascript' | 'python';
+    runtimeLabel: string;
+    courseSlug: string;
+    lessonSlug: string;
+    glossary: GlossaryMap;
+    steps: Step[];
+  };
+
+  interface Pyodide {
+    runPython(code: string): unknown;
+  }
+
+  const PYODIDE_VERSION = 'v0.26.4';
+  const PYODIDE_BASE = `https://cdn.jsdelivr.net/pyodide/${PYODIDE_VERSION}/full/`;
+  let pyodidePromise: Promise<Pyodide> | null = null;
+
+  function loadPyodide(): Promise<Pyodide> {
+    if (pyodidePromise) return pyodidePromise;
+    pyodidePromise = new Promise<Pyodide>((resolve, reject) => {
+      const s = document.createElement('script');
+      s.src = `${PYODIDE_BASE}pyodide.js`;
+      s.onload = () => {
+        const g = window as unknown as { loadPyodide?: (o: { indexURL: string }) => Promise<Pyodide> };
+        if (!g.loadPyodide) {
+          reject(new Error('pyodide no disponible'));
+          return;
+        }
+        g.loadPyodide({ indexURL: PYODIDE_BASE }).then(resolve).catch(reject);
+      };
+      s.onerror = () => reject(new Error('no se pudo cargar pyodide'));
+      document.head.appendChild(s);
+    });
+    return pyodidePromise;
+  }
+
+  // ── Ejecución ─────────────────────────────────────────────────
+  // incomplete: el programa todavía no cierra un bloque (sintaxis parcial válida).
+  // loadFailed: no se pudo cargar el motor (sin red) — el código igual es correcto.
+  type RunResult = { ok: boolean; output: string; incomplete?: boolean; loadFailed?: boolean };
+
+  function runJs(code: string): RunResult {
+    const logs: string[] = [];
+    const fmt = (v: unknown): string => {
+      if (typeof v === 'string') return v;
+      try {
+        return JSON.stringify(v);
+      } catch {
+        return String(v);
+      }
+    };
+    const sandboxConsole = { log: (...a: unknown[]) => logs.push(a.map(fmt).join(' ')) };
+    let fn: (c: { log: (...a: unknown[]) => void }) => void;
+    try {
+      fn = new Function('console', `"use strict";\n${code}`) as typeof fn;
+    } catch {
+      return { ok: false, output: '', incomplete: true };
+    }
+    try {
+      fn(sandboxConsole);
+      return { ok: true, output: logs.join('\n') };
+    } catch (e) {
+      return { ok: false, output: String(e instanceof Error ? `${e.name}: ${e.message}` : e) };
+    }
+  }
+
+  async function runPy(code: string): Promise<RunResult> {
+    let py: Pyodide;
+    try {
+      py = await loadPyodide();
+    } catch {
+      return { ok: false, output: '', loadFailed: true };
+    }
+    try {
+      py.runPython('import sys, io\n_ct_buf = io.StringIO()\nsys.stdout = _ct_buf');
+      py.runPython(code);
+      const out = py.runPython('_ct_buf.getvalue()');
+      py.runPython('sys.stdout = sys.__stdout__');
+      return { ok: true, output: String(out) };
+    } catch (e) {
+      try {
+        py.runPython('sys.stdout = sys.__stdout__');
+      } catch {
+        /* noop */
+      }
+      const msg = String(e instanceof Error ? e.message : e);
+      const incomplete = /unexpected EOF|expected an indented block|invalid syntax/i.test(msg);
+      return { ok: false, output: incomplete ? '' : msg.split('\n').slice(-3).join('\n'), incomplete };
+    }
+  }
+
+  // ── Utilidades ────────────────────────────────────────────────
+  const norm = (s: string) => s.replace(/\s+$/g, '');
+  const leadingWs = (s: string) => s.match(/^\s*/)?.[0] ?? '';
+
+  // Próximo "trozo" a tipear: espacios iniciales + un token (string, palabra o símbolo).
+  function nextChunk(remaining: string): string {
+    const m = remaining.match(/^(\s*)("[^"]*"|'[^']*'|`[^`]*`|\w+|[^\w\s])/);
+    return m ? m[0] : remaining;
+  }
+
+  // ── Controlador de una instancia ──────────────────────────────
+  function initTutor(root: HTMLElement) {
+    if (root.dataset.ctReady === '1') return;
+    root.dataset.ctReady = '1';
+
+    const dataEl = root.querySelector<HTMLScriptElement>('[data-ct-data]');
+    if (!dataEl?.textContent) return;
+    const data: Payload = JSON.parse(dataEl.textContent);
+
+    const $ = <T extends HTMLElement = HTMLElement>(sel: string) => root.querySelector<T>(sel);
+    const stepNumEl = $('[data-ct-step-num]')!;
+    const pctEl = $('[data-ct-pct]')!;
+    const fillEl = $('[data-ct-fill]')!;
+    const instructionEl = $('[data-ct-instruction]')!;
+    const explanationEl = $('[data-ct-explanation]')!;
+    const suggestEl = $('[data-ct-suggest]')!;
+    const suggestChip = $<HTMLButtonElement>('[data-ct-suggest-chip]')!;
+    const hintEl = $('[data-ct-hint]')!;
+    const hintBtn = $<HTMLButtonElement>('[data-ct-hint-btn]')!;
+    const checkBtn = $<HTMLButtonElement>('[data-ct-check]')!;
+    const acceptedEl = $('[data-ct-accepted]')!;
+    const activeWrap = $('[data-ct-active-wrap]')!;
+    const fieldEl = activeWrap.querySelector<HTMLElement>('.ct-field')!;
+    const typedEl = activeWrap.querySelector<HTMLElement>('.ct-typed')!;
+    const ghostEl = activeWrap.querySelector<HTMLElement>('.ct-ghost')!;
+    const input = $<HTMLInputElement>('[data-ct-input]')!;
+    const resetBtn = $<HTMLButtonElement>('[data-ct-reset]')!;
+    const outEl = $('[data-ct-out]')!;
+    const runBtn = $<HTMLButtonElement>('[data-ct-run]')!;
+    const doneEl = $('[data-ct-done]')!;
+    const tipEl = $('[data-ct-tip]')!;
+    const tipTerm = $('[data-ct-tip-term]')!;
+    const tipDef = $('[data-ct-tip-def]')!;
+
+    const storeKey = `ct:lesson:${data.courseSlug}:${data.lessonSlug}`;
+    const accepted: string[] = [];
+    let current = 0;
+    let finished = false;
+
+    function saveProgress() {
+      try {
+        localStorage.setItem(storeKey, String(current));
+        if (finished) {
+          const k = `ct:done:${data.courseSlug}`;
+          const set = new Set<string>(JSON.parse(localStorage.getItem(k) || '[]'));
+          set.add(data.lessonSlug);
+          localStorage.setItem(k, JSON.stringify([...set]));
+        }
+      } catch {
+        /* localStorage no disponible */
+      }
+    }
+
+    function renderAccepted() {
+      acceptedEl.innerHTML = '';
+      accepted.forEach((line, i) => {
+        const row = document.createElement('div');
+        row.className = 'ct-line';
+        const ln = document.createElement('span');
+        ln.className = 'ct-ln';
+        ln.textContent = String(i + 1);
+        const code = document.createElement('span');
+        code.className = 'ct-line-code';
+        code.textContent = line;
+        const chk = document.createElement('span');
+        chk.className = 'ct-line-check';
+        chk.textContent = '✓';
+        row.append(ln, code, chk);
+        acceptedEl.appendChild(row);
+      });
+    }
+
+    function updateProgress() {
+      const total = data.steps.length;
+      const pct = Math.round((current / total) * 100);
+      pctEl.textContent = `${pct}%`;
+      fillEl.style.width = `${pct}%`;
+      stepNumEl.textContent = String(Math.min(current + 1, total));
+    }
+
+    function updateGhost() {
+      const sol = data.steps[current]?.solution ?? '';
+      const val = input.value;
+      typedEl.textContent = val;
+      const matches = sol.startsWith(val);
+      ghostEl.textContent = matches ? sol.slice(val.length) : '';
+      fieldEl.classList.toggle('is-mismatch', !matches && val.length > 0);
+      // chip con el próximo trozo
+      const remaining = matches ? sol.slice(val.length) : '';
+      const chunk = remaining ? nextChunk(remaining).trim() : '';
+      if (chunk) {
+        suggestChip.textContent = chunk;
+        suggestEl.hidden = false;
+      } else {
+        suggestEl.hidden = true;
+      }
+    }
+
+    function loadStep() {
+      const step = data.steps[current];
+      if (!step) return;
+      instructionEl.textContent = step.instruction;
+      explanationEl.innerHTML = step.explanationHtml;
+      bindTerms();
+      hintEl.hidden = true;
+      hintEl.textContent = step.hint;
+      input.value = leadingWs(step.solution);
+      input.disabled = false;
+      checkBtn.disabled = false;
+      updateGhost();
+      updateProgress();
+      input.focus();
+      // mover caret al final
+      const end = input.value.length;
+      input.setSelectionRange(end, end);
+    }
+
+    function setOutput(res: RunResult) {
+      outEl.className = 'ct-console-out font-mono';
+      if (res.loadFailed) {
+        outEl.classList.add('ct-out-muted');
+        outEl.textContent =
+          '// tu código es correcto. (No se pudo cargar el motor de ejecución en este entorno para mostrar la salida en vivo.)';
+        return;
+      }
+      if (res.incomplete) {
+        outEl.classList.add('ct-out-muted');
+        outEl.textContent = '// el programa todavía está incompleto…';
+        return;
+      }
+      if (!res.ok) {
+        outEl.classList.add('ct-out-err');
+        outEl.textContent = res.output || 'Error al ejecutar';
+        return;
+      }
+      if (!res.output) {
+        outEl.classList.add('ct-out-muted');
+        outEl.textContent = '// sin salida (este código no imprime nada todavía)';
+        return;
+      }
+      outEl.textContent = res.output;
+    }
+
+    async function runProgram(code: string) {
+      if (data.language === 'python') {
+        outEl.className = 'ct-console-out font-mono ct-out-muted';
+        outEl.textContent = '// ejecutando Python (WebAssembly)…';
+        setOutput(await runPy(code));
+      } else {
+        setOutput(runJs(code));
+      }
+    }
+
+    function shake() {
+      activeWrap.classList.remove('is-shake');
+      void activeWrap.offsetWidth;
+      activeWrap.classList.add('is-shake');
+    }
+
+    async function check() {
+      const step = data.steps[current];
+      if (!step) return;
+      if (norm(input.value) === norm(step.solution)) {
+        accepted.push(step.solution);
+        renderAccepted();
+        current += 1;
+        saveProgress();
+        if (current >= data.steps.length) {
+          finishLesson();
+        } else {
+          loadStep();
+          await runProgram(accepted.join('\n'));
+        }
+      } else {
+        shake();
+        hintEl.hidden = false;
+      }
+    }
+
+    function finishLesson() {
+      finished = true;
+      saveProgress();
+      activeWrap.hidden = true;
+      suggestEl.hidden = true;
+      instructionEl.textContent = '¡Programa completo!';
+      explanationEl.innerHTML =
+        'Repasá tu código a la izquierda. Podés editarlo libremente y volver a ejecutarlo con <strong>Ejecutar</strong>.';
+      hintEl.hidden = true;
+      hintBtn.hidden = true;
+      checkBtn.hidden = true;
+      updateProgress();
+      doneEl.hidden = false;
+      runBtn.hidden = false;
+      makeEditable();
+      runProgram(accepted.join('\n'));
+    }
+
+    // Editor libre tras completar: un textarea con el programa final.
+    function makeEditable() {
+      const ta = document.createElement('textarea');
+      ta.className = 'ct-input font-mono';
+      ta.style.width = '100%';
+      ta.style.minHeight = `${Math.max(accepted.length, 3) * 1.75}em`;
+      ta.style.color = 'var(--aw-color-text-default)';
+      ta.style.resize = 'vertical';
+      ta.spellcheck = false;
+      ta.value = accepted.join('\n');
+      acceptedEl.innerHTML = '';
+      acceptedEl.appendChild(ta);
+      runBtn.onclick = () => runProgram(ta.value);
+    }
+
+    // ── Glosario (tooltips) ─────────────────────────────────────
+    function bindTerms() {
+      explanationEl.querySelectorAll<HTMLElement>('.ct-term').forEach((btn) => {
+        const key = btn.dataset.term || '';
+        const entry = data.glossary[key];
+        if (!entry) return;
+        const show = () => {
+          tipTerm.textContent = entry.term;
+          tipDef.textContent = entry.definition;
+          tipEl.hidden = false;
+          const r = btn.getBoundingClientRect();
+          const tr = tipEl.getBoundingClientRect();
+          let left = r.left + r.width / 2 - tr.width / 2;
+          left = Math.max(8, Math.min(left, window.innerWidth - tr.width - 8));
+          let top = r.top - tr.height - 8;
+          if (top < 8) top = r.bottom + 8;
+          tipEl.style.left = `${left}px`;
+          tipEl.style.top = `${top}px`;
+        };
+        const hide = () => {
+          tipEl.hidden = true;
+        };
+        btn.addEventListener('mouseenter', show);
+        btn.addEventListener('mouseleave', hide);
+        btn.addEventListener('focus', show);
+        btn.addEventListener('blur', hide);
+        btn.addEventListener('click', (e) => {
+          e.preventDefault();
+          if (tipEl.hidden) show();
+          else hide();
+        });
+      });
+    }
+
+    function acceptChunk() {
+      const sol = data.steps[current]?.solution ?? '';
+      const val = input.value;
+      if (!sol.startsWith(val)) return;
+      const remaining = sol.slice(val.length);
+      if (!remaining) return;
+      input.value = val + nextChunk(remaining);
+      updateGhost();
+      const end = input.value.length;
+      input.setSelectionRange(end, end);
+    }
+
+    // ── Eventos ─────────────────────────────────────────────────
+    input.addEventListener('input', updateGhost);
+    input.addEventListener('keydown', (e) => {
+      if (e.key === 'Tab') {
+        e.preventDefault();
+        acceptChunk();
+      } else if (e.key === 'Enter') {
+        e.preventDefault();
+        check();
+      }
+    });
+    suggestChip.addEventListener('click', () => {
+      acceptChunk();
+      input.focus();
+    });
+    checkBtn.addEventListener('click', () => check());
+    hintBtn.addEventListener('click', () => {
+      hintEl.hidden = !hintEl.hidden;
+    });
+    resetBtn.addEventListener('click', () => {
+      accepted.length = 0;
+      current = 0;
+      finished = false;
+      try {
+        localStorage.removeItem(storeKey);
+      } catch {
+        /* noop */
+      }
+      acceptedEl.innerHTML = '';
+      activeWrap.hidden = false;
+      hintBtn.hidden = false;
+      checkBtn.hidden = false;
+      doneEl.hidden = true;
+      runBtn.hidden = true;
+      outEl.className = 'ct-console-out font-mono ct-out-muted';
+      outEl.textContent = '';
+      loadStep();
+    });
+    window.addEventListener('scroll', () => (tipEl.hidden = true), { passive: true });
+
+    // ── Arranque ────────────────────────────────────────────────
+    renderAccepted();
+    loadStep();
+    outEl.className = 'ct-console-out font-mono ct-out-muted';
+    outEl.textContent = '// la salida de tu programa aparece acá';
+  }
+
+  function initAll() {
+    document.querySelectorAll<HTMLElement>('[data-ct]').forEach(initTutor);
+  }
+
+  document.addEventListener('astro:page-load', initAll);
+  if (document.readyState !== 'loading') initAll();
+  else document.addEventListener('DOMContentLoaded', initAll);
+</script>

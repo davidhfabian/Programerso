@@ -1,0 +1,119 @@
+---
+export const prerender = true;
+
+import Layout from '~/layouts/Layout.astro';
+import { Icon } from 'astro-icon/components';
+import CodeTutor from '~/components/CodeTutor.astro';
+import { courses, getCourse, getLesson, flattenLessons, getAdjacentLessons } from '~/data/learn';
+
+export async function getStaticPaths() {
+  return courses.flatMap((course) =>
+    flattenLessons(course).map((lesson) => ({
+      params: { course: course.slug, lesson: lesson.slug },
+    }))
+  );
+}
+
+const { course: courseSlug, lesson: lessonSlug } = Astro.params;
+const course = getCourse(courseSlug!);
+const lesson = course ? getLesson(course, lessonSlug!) : undefined;
+if (!course || !lesson) return Astro.redirect('/');
+
+const { prev, next } = getAdjacentLessons(course, lesson.slug);
+const all = flattenLessons(course);
+const lessonIndex = all.findIndex((l) => l.slug === lesson.slug);
+---
+
+<Layout title={`${lesson.title} · ${course.title}`} description={lesson.summary}>
+  <section class="relative max-w-6xl mx-auto px-4 sm:px-6 pt-12 md:pt-16 pb-20 md:pb-28">
+    <!-- Migas -->
+    <nav
+      class="flex items-center gap-2 font-mono text-[0.72rem] text-[var(--aw-color-text-tertiary)] mb-7"
+      aria-label="Ruta"
+    >
+      <a href="/" class="hover:text-default transition-colors">inicio</a>
+      <span aria-hidden="true">/</span>
+      <a href={`/${course.slug}`} class="hover:text-default transition-colors">{course.slug}</a>
+      <span aria-hidden="true">/</span>
+      <span class="text-muted">{lesson.slug}</span>
+    </nav>
+
+    <header class="mb-7 max-w-3xl">
+      <span class="font-mono text-[0.72rem] text-[var(--aw-color-text-tertiary)]">
+        Lección {lessonIndex + 1} de {all.length} · {lesson.minutes} min
+      </span>
+      <h1 class="font-heading text-3xl md:text-4xl font-semibold tracking-tight text-default leading-tight mt-2 mb-4">
+        {lesson.title}
+      </h1>
+      <div class="ct-intro text-base text-muted leading-relaxed" set:html={lesson.intro} />
+    </header>
+
+    <CodeTutor lesson={lesson} language={course.language} runtimeLabel={course.runtimeLabel} courseSlug={course.slug} />
+
+    <p class="mt-4 flex flex-wrap items-center gap-2 text-[0.78rem] text-[var(--aw-color-text-tertiary)]">
+      <Icon name="tabler:keyboard" class="w-4 h-4" />
+      Escribí con ayuda del autocompletado · <kbd class="ct-kbd">Tab</kbd> acepta la sugerencia ·
+      <kbd class="ct-kbd">Enter</kbd> comprueba
+    </p>
+
+    <!-- Navegación entre lecciones -->
+    <nav class="mt-12 grid sm:grid-cols-2 gap-3" aria-label="Navegación de lecciones">
+      {
+        prev ? (
+          <a
+            href={`/${course.slug}/${prev.slug}`}
+            class="group flex flex-col rounded-xl border border-[var(--aw-color-border)] bg-[var(--aw-color-bg-surface)] px-4 py-3.5 transition-colors hover:border-[var(--aw-color-border-hover)]"
+          >
+            <span class="font-mono text-[0.7rem] text-[var(--aw-color-text-tertiary)] mb-1">← Anterior</span>
+            <span class="text-sm font-medium text-default">{prev.title}</span>
+          </a>
+        ) : (
+          <span />
+        )
+      }
+      {
+        next ? (
+          <a
+            href={`/${course.slug}/${next.slug}`}
+            class="group flex flex-col items-end rounded-xl border border-[var(--aw-color-border)] bg-[var(--aw-color-bg-surface)] px-4 py-3.5 text-right transition-colors hover:border-[var(--aw-color-border-hover)]"
+          >
+            <span class="font-mono text-[0.7rem] text-[var(--aw-color-text-tertiary)] mb-1">Siguiente →</span>
+            <span class="text-sm font-medium text-default">{next.title}</span>
+          </a>
+        ) : (
+          <a
+            href={`/${course.slug}`}
+            class="group flex flex-col items-end rounded-xl border border-[var(--turquoise-border)] bg-[var(--turquoise-bg)] px-4 py-3.5 text-right transition-colors"
+          >
+            <span class="font-mono text-[0.7rem] text-primary mb-1">Fin del curso ✓</span>
+            <span class="text-sm font-medium text-default">Volver al índice del curso</span>
+          </a>
+        )
+      }
+    </nav>
+  </section>
+</Layout>
+
+<style>
+  .ct-intro :global(code) {
+    font-family: var(--font-geist-mono);
+    font-size: 0.85em;
+    padding: 0.1em 0.4em;
+    border-radius: 5px;
+    background: var(--aw-color-bg-surface);
+    border: 1px solid var(--aw-color-border);
+    color: var(--aw-color-text-default);
+  }
+  .ct-intro :global(strong) {
+    color: var(--aw-color-text-default);
+    font-weight: 600;
+  }
+  .ct-kbd {
+    font-family: var(--font-geist-mono);
+    font-size: 0.68rem;
+    border: 1px solid var(--aw-color-border-hover);
+    border-radius: 4px;
+    padding: 0.05rem 0.35rem;
+    color: var(--aw-color-text-muted);
+  }
+</style>

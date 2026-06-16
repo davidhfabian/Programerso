@@ -1,0 +1,120 @@
+---
+import '~/styles/global.css';
+import { ClientRouter } from 'astro:transitions';
+import { Icon } from 'astro-icon/components';
+
+export interface Props {
+  title?: string;
+  description?: string;
+}
+
+const {
+  title = 'Programerso — Aprendé a programar desde cero',
+  description = 'Cursos interactivos de JavaScript y Python desde cero. Escribís código real con autocompletado guiado, cada término explicado y ejecución en tu navegador.',
+} = Astro.props;
+
+const fullTitle = title.includes('Programerso') ? title : `${title} · Programerso`;
+---
+
+<!doctype html>
+<html lang="es" class="dark">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{fullTitle}</title>
+    <meta name="description" content={description} />
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <meta name="theme-color" content="#000000" />
+    <meta property="og:title" content={fullTitle} />
+    <meta property="og:description" content={description} />
+    <meta property="og:type" content="website" />
+    {/* Evita el flash de tema: se aplica antes de pintar */}
+    <script is:inline>
+      (function () {
+        try {
+          const stored = localStorage.getItem('theme');
+          const dark = stored ? stored === 'dark' : window.matchMedia('(prefers-color-scheme: dark)').matches;
+          document.documentElement.classList.toggle('dark', dark);
+        } catch (e) {
+          /* noop */
+        }
+      })();
+    </script>
+    <ClientRouter />
+  </head>
+  <body>
+    <header class="sticky top-0 z-40 border-b border-[var(--aw-color-border)] bg-[var(--aw-color-bg-page)]/80 backdrop-blur">
+      <div class="max-w-6xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
+        <a href="/" class="flex items-center gap-2 font-heading font-semibold tracking-tight text-default">
+          <span class="font-mono text-primary">{'</>'}</span>
+          Programerso
+        </a>
+        <nav class="flex items-center gap-1 sm:gap-2">
+          <a
+            href="/javascript"
+            class="px-3 py-1.5 rounded-lg text-sm text-muted hover:text-default hover:bg-[var(--aw-color-bg-surface)] transition-colors"
+            >JavaScript</a
+          >
+          <a
+            href="/python"
+            class="px-3 py-1.5 rounded-lg text-sm text-muted hover:text-default hover:bg-[var(--aw-color-bg-surface)] transition-colors"
+            >Python</a
+          >
+          <button
+            type="button"
+            data-theme-toggle
+            aria-label="Cambiar tema"
+            class="ml-1 grid place-items-center w-9 h-9 rounded-lg text-muted hover:text-default hover:bg-[var(--aw-color-bg-surface)] transition-colors"
+          >
+            <Icon name="tabler:sun" class="w-[18px] h-[18px] hidden dark:block" />
+            <Icon name="tabler:moon" class="w-[18px] h-[18px] block dark:hidden" />
+          </button>
+        </nav>
+      </div>
+    </header>
+
+    <main>
+      <slot />
+    </main>
+
+    <footer class="border-t border-[var(--aw-color-border)] mt-16">
+      <div
+        class="max-w-6xl mx-auto px-4 sm:px-6 py-8 flex flex-col sm:flex-row items-center justify-between gap-3 text-sm text-[var(--aw-color-text-tertiary)]"
+      >
+        <span class="font-mono">Programerso</span>
+        <span>Aprendé programando código real, en tu navegador.</span>
+      </div>
+    </footer>
+
+    <script>
+      // Toggle de tema, idempotente y compatible con View Transitions.
+      function setupThemeToggle() {
+        const btn = document.querySelector('[data-theme-toggle]');
+        if (!btn || btn.getAttribute('data-bound') === '1') return;
+        btn.setAttribute('data-bound', '1');
+        btn.addEventListener('click', () => {
+          const isDark = document.documentElement.classList.toggle('dark');
+          try {
+            localStorage.setItem('theme', isDark ? 'dark' : 'light');
+          } catch {
+            /* noop */
+          }
+        });
+      }
+      // Reaplica el tema tras cada navegación SPA.
+      function applyTheme() {
+        try {
+          const stored = localStorage.getItem('theme');
+          const dark = stored ? stored === 'dark' : window.matchMedia('(prefers-color-scheme: dark)').matches;
+          document.documentElement.classList.toggle('dark', dark);
+        } catch {
+          /* noop */
+        }
+      }
+      document.addEventListener('astro:after-swap', applyTheme);
+      document.addEventListener('astro:page-load', setupThemeToggle);
+      if (document.readyState !== 'loading') setupThemeToggle();
+      else document.addEventListener('DOMContentLoaded', setupThemeToggle);
+    </script>
+  </body>
+</html>

@@ -1,0 +1,139 @@
+---
+export const prerender = true;
+
+import Layout from '~/layouts/Layout.astro';
+import { Icon } from 'astro-icon/components';
+import { courses, getCourse, totalLessons, totalMinutes, flattenLessons } from '~/data/learn';
+
+export async function getStaticPaths() {
+  return courses.map((course) => ({ params: { course: course.slug } }));
+}
+
+const { course: courseSlug } = Astro.params;
+const course = getCourse(courseSlug!);
+if (!course) return Astro.redirect('/');
+
+const lessonsFlat = flattenLessons(course);
+const firstLesson = lessonsFlat[0];
+---
+
+<Layout title={course.title} description={course.description}>
+  <section class="relative max-w-4xl mx-auto px-4 sm:px-6 pt-12 md:pt-16 pb-10">
+    <a
+      href="/"
+      class="inline-flex items-center gap-1.5 font-mono text-[0.75rem] text-muted hover:text-default transition-colors mb-8"
+    >
+      <Icon name="tabler:arrow-left" class="w-3.5 h-3.5" /> Todos los cursos
+    </a>
+
+    <div class="flex items-center gap-4 mb-5">
+      <Icon name={course.icon} class="w-11 h-11 text-default" />
+      <div>
+        <span class="font-mono text-[0.7rem] text-[var(--aw-color-text-tertiary)] uppercase tracking-wider">
+          {course.tagline}
+        </span>
+        <h1 class="font-heading text-3xl md:text-4xl font-semibold tracking-tight text-default leading-tight">
+          {course.title}
+        </h1>
+      </div>
+    </div>
+
+    <p class="text-base text-muted leading-relaxed max-w-2xl mb-6">{course.description}</p>
+
+    <div class="flex flex-wrap items-center gap-4 font-mono text-[0.75rem] text-[var(--aw-color-text-tertiary)] mb-8">
+      <span class="inline-flex items-center gap-1.5">
+        <Icon name="tabler:books" class="w-3.5 h-3.5" />
+        {totalLessons(course)} lecciones
+      </span>
+      <span class="inline-flex items-center gap-1.5">
+        <Icon name="tabler:clock" class="w-3.5 h-3.5" />~{totalMinutes(course)} min
+      </span>
+      <span class="inline-flex items-center gap-1.5">
+        <Icon name="tabler:device-laptop" class="w-3.5 h-3.5" /> Ejecución en el navegador
+      </span>
+    </div>
+
+    {
+      firstLesson && (
+        <a href={`/${course.slug}/${firstLesson.slug}`} class="btn-primary" data-ct-start>
+          <span data-ct-start-label>Empezar el curso</span>
+          <Icon name="tabler:arrow-right" class="w-4 h-4 ml-1.5 inline-block" />
+        </a>
+      )
+    }
+  </section>
+
+  <section class="relative max-w-4xl mx-auto px-4 sm:px-6 pb-20 md:pb-28">
+    <div class="space-y-10">
+      {
+        course.modules.map((mod, mi) => (
+          <div>
+            <div class="flex items-baseline gap-3 mb-4">
+              <span class="font-mono text-[0.8rem] text-primary">{String(mi + 1).padStart(2, '0')}</span>
+              <div>
+                <h2 class="font-heading text-lg font-semibold tracking-tight text-default">{mod.title}</h2>
+                <p class="text-sm text-muted">{mod.description}</p>
+              </div>
+            </div>
+
+            <ol class="space-y-2 sm:pl-9">
+              {mod.lessons.map((lesson) => (
+                <li>
+                  <a
+                    href={`/${course.slug}/${lesson.slug}`}
+                    class="ct-lesson group flex items-center gap-4 rounded-xl border border-[var(--aw-color-border)] bg-[var(--aw-color-bg-surface)] px-4 py-3.5 transition-all duration-200 hover:border-[var(--aw-color-border-hover)]"
+                    data-lesson={lesson.slug}
+                  >
+                    <span class="ct-lesson-mark grid place-items-center w-7 h-7 flex-none rounded-full border border-[var(--aw-color-border)] font-mono text-[0.7rem] text-[var(--aw-color-text-tertiary)]">
+                      <span class="ct-lesson-dot">{lesson.minutes}′</span>
+                    </span>
+                    <span class="flex-1 min-w-0">
+                      <span class="block text-sm font-medium text-default truncate">{lesson.title}</span>
+                      <span class="block text-[0.8rem] text-muted truncate">{lesson.summary}</span>
+                    </span>
+                    <Icon
+                      name="tabler:chevron-right"
+                      class="w-4 h-4 flex-none text-[var(--aw-color-text-tertiary)] transition-transform duration-200 group-hover:translate-x-0.5"
+                    />
+                  </a>
+                </li>
+              ))}
+            </ol>
+          </div>
+        ))
+      }
+    </div>
+  </section>
+</Layout>
+
+<script>
+  // Marca lecciones completadas y ajusta el CTA según el progreso guardado.
+  function paint() {
+    const slug = location.pathname.split('/').filter(Boolean).pop();
+    if (!slug) return;
+    let done = new Set<string>();
+    try {
+      done = new Set<string>(JSON.parse(localStorage.getItem(`ct:done:${slug}`) || '[]'));
+    } catch {
+      /* noop */
+    }
+    document.querySelectorAll<HTMLElement>('.ct-lesson').forEach((el) => {
+      const lesson = el.dataset.lesson;
+      if (lesson && done.has(lesson)) {
+        el.classList.add('is-done');
+        const mark = el.querySelector('.ct-lesson-mark');
+        const dot = el.querySelector('.ct-lesson-dot');
+        if (dot) dot.textContent = '✓';
+        if (mark) {
+          (mark as HTMLElement).style.color = 'var(--aw-color-primary)';
+          (mark as HTMLElement).style.borderColor = 'var(--turquoise-border)';
+        }
+      }
+    });
+    const label = document.querySelector<HTMLElement>('[data-ct-start-label]');
+    if (label && done.size > 0) label.textContent = 'Seguir aprendiendo';
+  }
+  document.addEventListener('astro:page-load', paint);
+  if (document.readyState !== 'loading') paint();
+  else document.addEventListener('DOMContentLoaded', paint);
+</script>
