@@ -1,13 +1,15 @@
 {
   "name": "programerso",
   "type": "module",
-  "version": "0.1.0",
-  "description": "Aprendé a programar desde cero escribiendo código real, con autocompletado guiado y ejecución en el navegador.",
+  "version": "0.2.0",
+  "description": "Aprendé a programar desde cero y en la era de la IA: código real en el navegador, ejercicios variados, XP, rachas y certificados.",
   "scripts": {
     "dev": "astro dev",
     "build": "astro build",
     "preview": "astro preview",
-    "check": "astro check"
+    "check": "astro check",
+    "verify:content": "node --experimental-strip-types scripts/verify-content.mjs",
+    "verify": "pnpm run check && pnpm run verify:content && pnpm run build"
   },
   "dependencies": {
     "@astrojs/tailwind": "^5.1.5",

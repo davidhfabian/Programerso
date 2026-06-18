@@ -1,0 +1,339 @@
+---
+// Paleta de comandos / buscador global (⌘K o Ctrl+K). Indexa cursos, lecciones,
+// términos del glosario y acciones de navegación. Todo client-side.
+import { courses, flattenLessons, glossary } from '~/data/learn';
+
+type Item = { type: string; title: string; sub: string; href: string; keywords: string };
+
+const items: Item[] = [];
+
+// Acciones / páginas
+items.push(
+  { type: 'Ir a', title: 'Inicio · Catálogo de cursos', sub: 'Todos los cursos', href: '/', keywords: 'inicio home cursos catalogo' },
+  { type: 'Ir a', title: 'Mi progreso', sub: 'XP, nivel, racha y logros', href: '/progreso', keywords: 'progreso dashboard xp nivel racha logros metas' },
+  { type: 'Ir a', title: 'Playground', sub: 'Editor libre de JS y Python', href: '/playground', keywords: 'playground editor probar consola ejecutar' },
+  { type: 'Ir a', title: 'Glosario', sub: 'Todos los términos explicados', href: '/glosario', keywords: 'glosario terminos definiciones diccionario' },
+  { type: 'Ir a', title: 'Mi perfil', sub: 'Cuenta, metas y certificados', href: '/perfil', keywords: 'perfil cuenta login registro meta certificado diploma' }
+);
+
+// Cursos y lecciones
+for (const course of courses) {
+  items.push({
+    type: 'Curso',
+    title: course.title,
+    sub: course.tagline,
+    href: `/${course.slug}`,
+    keywords: `${course.slug} ${course.title} ${course.description}`,
+  });
+  for (const lesson of flattenLessons(course)) {
+    items.push({
+      type: course.title,
+      title: lesson.title,
+      sub: lesson.summary,
+      href: `/${course.slug}/${lesson.slug}`,
+      keywords: `${lesson.title} ${lesson.summary} ${course.slug}`,
+    });
+  }
+}
+
+// Glosario
+for (const [key, entry] of Object.entries(glossary)) {
+  items.push({
+    type: 'Término',
+    title: entry.term,
+    sub: entry.definition.slice(0, 80) + '…',
+    href: `/glosario#${key}`,
+    keywords: `${key} ${entry.term} ${entry.definition}`,
+  });
+}
+
+const json = JSON.stringify(items).replace(/</g, '\\u003c');
+---
+
+<div class="cmdk" data-cmdk hidden role="dialog" aria-modal="true" aria-label="Buscar">
+  <div class="cmdk-backdrop" data-cmdk-close></div>
+  <div class="cmdk-panel" role="document">
+    <div class="cmdk-search">
+      <span class="cmdk-search-icon" aria-hidden="true">⌕</span>
+      <input
+        type="text"
+        class="cmdk-input"
+        data-cmdk-input
+        placeholder="Buscar lecciones, términos, páginas…"
+        aria-label="Buscar"
+        autocomplete="off"
+        spellcheck="false"
+      />
+      <kbd class="cmdk-esc">esc</kbd>
+    </div>
+    <ul class="cmdk-results" data-cmdk-results role="listbox"></ul>
+    <div class="cmdk-empty" data-cmdk-empty hidden>Sin resultados.</div>
+  </div>
+  <script type="application/json" data-cmdk-data is:inline set:html={json} />
+</div>
+
+<style>
+  .cmdk {
+    position: fixed;
+    inset: 0;
+    z-index: 100;
+    display: flex;
+    align-items: flex-start;
+    justify-content: center;
+    padding: 12vh 1rem 1rem;
+  }
+  .cmdk-backdrop {
+    position: absolute;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.45);
+    backdrop-filter: blur(3px);
+    animation: cmdk-fade 0.15s ease both;
+  }
+  .cmdk-panel {
+    position: relative;
+    width: 100%;
+    max-width: 580px;
+    background: var(--aw-color-bg-page);
+    border: 1px solid var(--aw-color-border-hover);
+    border-radius: 14px;
+    box-shadow: 0 24px 80px rgba(0, 0, 0, 0.4);
+    overflow: hidden;
+    animation: cmdk-pop 0.16s cubic-bezier(0.16, 1, 0.3, 1) both;
+  }
+  @keyframes cmdk-fade {
+    from {
+      opacity: 0;
+    }
+  }
+  @keyframes cmdk-pop {
+    from {
+      opacity: 0;
+      transform: translateY(-8px) scale(0.98);
+    }
+  }
+  .cmdk-search {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    padding: 0.85rem 1rem;
+    border-bottom: 1px solid var(--aw-color-border);
+  }
+  .cmdk-search-icon {
+    color: var(--aw-color-text-tertiary);
+    font-size: 1.1rem;
+  }
+  .cmdk-input {
+    flex: 1;
+    background: none;
+    border: none;
+    outline: none;
+    color: var(--aw-color-text-default);
+    font-size: 0.95rem;
+    font-family: var(--font-geist-sans);
+  }
+  .cmdk-esc {
+    font-family: var(--font-geist-mono);
+    font-size: 0.65rem;
+    color: var(--aw-color-text-tertiary);
+    border: 1px solid var(--aw-color-border);
+    border-radius: 5px;
+    padding: 0.1rem 0.4rem;
+  }
+  .cmdk-results {
+    list-style: none;
+    margin: 0;
+    padding: 0.4rem;
+    max-height: 52vh;
+    overflow-y: auto;
+  }
+  .cmdk-item {
+    display: flex;
+    align-items: center;
+    gap: 0.7rem;
+    padding: 0.55rem 0.7rem;
+    border-radius: 9px;
+    cursor: pointer;
+    color: var(--aw-color-text-default);
+  }
+  .cmdk-item.is-active,
+  .cmdk-item:hover {
+    background: var(--aw-color-bg-surface);
+  }
+  .cmdk-item-type {
+    flex: 0 0 auto;
+    font-family: var(--font-geist-mono);
+    font-size: 0.6rem;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--ct-accent, var(--aw-color-primary));
+    background: var(--turquoise-bg);
+    border: 1px solid var(--turquoise-border);
+    border-radius: 5px;
+    padding: 0.12rem 0.4rem;
+    min-width: 4.4rem;
+    text-align: center;
+  }
+  .cmdk-item-body {
+    min-width: 0;
+    flex: 1;
+  }
+  .cmdk-item-title {
+    font-size: 0.88rem;
+    font-weight: 500;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .cmdk-item-sub {
+    font-size: 0.74rem;
+    color: var(--aw-color-text-tertiary);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .cmdk-empty {
+    padding: 1.5rem;
+    text-align: center;
+    color: var(--aw-color-text-tertiary);
+    font-size: 0.85rem;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .cmdk-backdrop,
+    .cmdk-panel {
+      animation: none !important;
+    }
+  }
+</style>
+
+<script>
+  type Item = { type: string; title: string; sub: string; href: string; keywords: string };
+
+  function setupCmdK() {
+    const rootMaybe = document.querySelector<HTMLElement>('[data-cmdk]');
+    if (!rootMaybe || rootMaybe.dataset.bound === '1') return;
+    rootMaybe.dataset.bound = '1';
+    const root = rootMaybe; // no-null para los closures
+
+    const dataEl = root.querySelector<HTMLScriptElement>('[data-cmdk-data]');
+    const items: Item[] = dataEl?.textContent ? JSON.parse(dataEl.textContent) : [];
+    const input = root.querySelector<HTMLInputElement>('[data-cmdk-input]')!;
+    const list = root.querySelector<HTMLUListElement>('[data-cmdk-results]')!;
+    const empty = root.querySelector<HTMLElement>('[data-cmdk-empty]')!;
+    let active = 0;
+    let filtered: Item[] = [];
+
+    const norm = (s: string) =>
+      s.toLowerCase().normalize('NFD').replace(/\p{Diacritic}/gu, '');
+
+    function render(q: string) {
+      const nq = norm(q.trim());
+      filtered = !nq
+        ? items.slice(0, 8)
+        : items
+            .map((it) => ({ it, score: score(it, nq) }))
+            .filter((x) => x.score > 0)
+            .sort((a, b) => b.score - a.score)
+            .slice(0, 12)
+            .map((x) => x.it);
+      active = 0;
+      list.replaceChildren();
+      empty.hidden = filtered.length > 0;
+      filtered.forEach((it, i) => {
+        const li = document.createElement('li');
+        li.className = 'cmdk-item' + (i === 0 ? ' is-active' : '');
+        li.setAttribute('role', 'option');
+        li.dataset.href = it.href;
+        const type = document.createElement('span');
+        type.className = 'cmdk-item-type';
+        type.textContent = it.type;
+        const body = document.createElement('span');
+        body.className = 'cmdk-item-body';
+        const title = document.createElement('div');
+        title.className = 'cmdk-item-title';
+        title.textContent = it.title;
+        const sub = document.createElement('div');
+        sub.className = 'cmdk-item-sub';
+        sub.textContent = it.sub;
+        body.append(title, sub);
+        li.append(type, body);
+        li.addEventListener('click', () => go(it.href));
+        li.addEventListener('mousemove', () => setActive(i));
+        list.appendChild(li);
+      });
+    }
+
+    function score(it: Item, nq: string): number {
+      const hay = norm(it.title + ' ' + it.keywords);
+      if (!hay.includes(nq)) {
+        // permití match por palabras sueltas
+        const words = nq.split(/\s+/);
+        return words.every((w) => hay.includes(w)) ? 1 : 0;
+      }
+      let s = 2;
+      if (norm(it.title).startsWith(nq)) s += 3;
+      else if (norm(it.title).includes(nq)) s += 1;
+      return s;
+    }
+
+    function setActive(i: number) {
+      active = i;
+      [...list.children].forEach((c, idx) => c.classList.toggle('is-active', idx === active));
+    }
+
+    function go(href: string) {
+      close();
+      window.location.href = href;
+    }
+
+    function open() {
+      root.hidden = false;
+      input.value = '';
+      render('');
+      requestAnimationFrame(() => input.focus());
+    }
+    function close() {
+      root.hidden = true;
+    }
+    function toggle() {
+      root.hidden ? open() : close();
+    }
+
+    input.addEventListener('input', () => render(input.value));
+    input.addEventListener('keydown', (e) => {
+      if (e.key === 'ArrowDown') {
+        e.preventDefault();
+        setActive(Math.min(active + 1, filtered.length - 1));
+        list.children[active]?.scrollIntoView({ block: 'nearest' });
+      } else if (e.key === 'ArrowUp') {
+        e.preventDefault();
+        setActive(Math.max(active - 1, 0));
+        list.children[active]?.scrollIntoView({ block: 'nearest' });
+      } else if (e.key === 'Enter') {
+        e.preventDefault();
+        const it = filtered[active];
+        if (it) go(it.href);
+      } else if (e.key === 'Escape') {
+        close();
+      }
+    });
+    root.querySelector('[data-cmdk-close]')?.addEventListener('click', close);
+
+    // Atajos globales + botón disparador
+    document.addEventListener('keydown', (e) => {
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') {
+        e.preventDefault();
+        toggle();
+      } else if (e.key === '/' && document.activeElement === document.body) {
+        e.preventDefault();
+        open();
+      }
+    });
+    document.querySelectorAll('[data-cmdk-open]').forEach((b) =>
+      b.addEventListener('click', open)
+    );
+  }
+
+  document.addEventListener('astro:page-load', setupCmdK);
+  if (document.readyState !== 'loading') setupCmdK();
+  else document.addEventListener('DOMContentLoaded', setupCmdK);
+</script>

@@ -1,0 +1,279 @@
+---
+export const prerender = true;
+import Layout from '~/layouts/Layout.astro';
+import { Icon } from 'astro-icon/components';
+import { courses, getCourse, totalLessons } from '~/data/learn';
+
+export async function getStaticPaths() {
+  return courses.map((course) => ({ params: { course: course.slug } }));
+}
+
+const { course: courseSlug } = Astro.params;
+const course = getCourse(courseSlug!);
+if (!course) return Astro.redirect('/');
+
+const total = totalLessons(course);
+---
+
+<Layout title={`Certificado · ${course.title}`} description={`Diploma de finalización de ${course.title}.`} bare={true}>
+  <section class="max-w-3xl mx-auto px-4 sm:px-6 pt-10 md:pt-14 pb-20">
+    {/* Aviso de bloqueo si no se completó */}
+    <div
+      class="rounded-2xl border border-[var(--aw-color-border)] bg-[var(--aw-color-bg-surface)] p-6 mb-6 print:hidden"
+      data-cert-locked
+      hidden
+    >
+      <div class="flex items-start gap-3">
+        <Icon name="tabler:lock" class="w-5 h-5 text-[var(--aw-color-text-tertiary)] mt-0.5" />
+        <div class="flex-1">
+          <h2 class="text-sm font-semibold text-default">Todavía no completaste este curso</h2>
+          <p class="text-[0.85rem] text-muted mt-1">
+            Llevás <span data-cert-done>0</span> de {total} lecciones. Terminalas todas para desbloquear tu diploma
+            oficial. Abajo podés ver una vista previa.
+          </p>
+          <div class="mt-3 h-1.5 rounded-full bg-[var(--aw-color-border)] overflow-hidden max-w-xs">
+            <div class="h-full rounded-full bg-primary" data-cert-bar style="width:0%"></div>
+          </div>
+          <a href={`/${course.slug}`} class="inline-block mt-4 text-[0.85rem] text-primary hover:underline">
+            Seguir el curso →
+          </a>
+        </div>
+      </div>
+    </div>
+
+    {/* Diploma */}
+    <div class="cert" data-cert>
+      <div class="cert-inner">
+        <div class="cert-head">
+          <span class="cert-brand font-mono">{'</>'} Programerso</span>
+          <span class="cert-seal"><Icon name="tabler:rosette" class="w-10 h-10" /></span>
+        </div>
+
+        <p class="cert-kicker">Certificado de finalización</p>
+        <h1 class="cert-name" data-cert-name>—</h1>
+        <p class="cert-text">completó con éxito el curso</p>
+        <h2 class="cert-course">{course.title}</h2>
+        <p class="cert-sub">{course.description}</p>
+
+        <div class="cert-meta">
+          <div>
+            <span class="cert-meta-label">Lecciones</span>
+            <span class="cert-meta-value">{total}</span>
+          </div>
+          <div>
+            <span class="cert-meta-label">Nivel alcanzado</span>
+            <span class="cert-meta-value" data-cert-rank>—</span>
+          </div>
+          <div>
+            <span class="cert-meta-label">Fecha</span>
+            <span class="cert-meta-value" data-cert-date>—</span>
+          </div>
+        </div>
+
+        <div class="cert-foot">
+          <div class="cert-sign">
+            <span class="cert-sign-line"></span>
+            <span class="cert-sign-label">Programerso · Aprender programando de verdad</span>
+          </div>
+          <span class="cert-id font-mono" data-cert-id>ID —</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="flex flex-wrap gap-3 mt-6 print:hidden">
+      <button type="button" data-cert-print class="btn-primary">
+        <Icon name="tabler:download" class="w-4 h-4 mr-1.5 inline-block" /> Descargar / Imprimir
+      </button>
+      <a href="/progreso" class="inline-flex items-center gap-2 text-sm rounded-lg border border-[var(--aw-color-border)] hover:border-[var(--aw-color-border-hover)] px-4 py-3 text-default transition-colors">
+        Volver al progreso
+      </a>
+    </div>
+    <p class="text-[0.78rem] text-[var(--aw-color-text-tertiary)] mt-3 print:hidden">
+      Consejo: en el diálogo de impresión elegí "Guardar como PDF" para conservar tu diploma.
+    </p>
+  </section>
+</Layout>
+
+<style is:global>
+  .cert {
+    border-radius: 18px;
+    padding: 4px;
+    background: linear-gradient(135deg, var(--aw-color-primary), rgba(120, 120, 120, 0.25), var(--aw-color-primary));
+  }
+  .cert-inner {
+    background: var(--aw-color-bg-page);
+    border-radius: 14px;
+    padding: 2.6rem 2.4rem;
+    text-align: center;
+  }
+  .cert-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 1.6rem;
+  }
+  .cert-brand {
+    font-weight: 600;
+    color: var(--aw-color-text-default);
+  }
+  .cert-seal {
+    color: var(--aw-color-primary);
+  }
+  .cert-kicker {
+    font-family: var(--font-geist-mono);
+    text-transform: uppercase;
+    letter-spacing: 0.22em;
+    font-size: 0.7rem;
+    color: var(--aw-color-text-tertiary);
+    margin-bottom: 0.8rem;
+  }
+  .cert-name {
+    font-family: var(--font-geist-sans);
+    font-size: clamp(1.8rem, 6vw, 2.8rem);
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    color: var(--aw-color-text-default);
+    line-height: 1.1;
+    margin-bottom: 0.9rem;
+    border-bottom: 1px solid var(--aw-color-border);
+    padding-bottom: 0.9rem;
+  }
+  .cert-text {
+    color: var(--aw-color-text-muted);
+    font-size: 0.92rem;
+    margin-bottom: 0.4rem;
+  }
+  .cert-course {
+    font-family: var(--font-geist-sans);
+    font-size: 1.4rem;
+    font-weight: 600;
+    color: var(--aw-color-primary);
+    margin-bottom: 0.6rem;
+  }
+  .cert-sub {
+    color: var(--aw-color-text-muted);
+    font-size: 0.85rem;
+    max-width: 32rem;
+    margin: 0 auto 1.8rem;
+    line-height: 1.5;
+  }
+  .cert-meta {
+    display: flex;
+    justify-content: center;
+    gap: 2.4rem;
+    flex-wrap: wrap;
+    padding: 1.3rem 0;
+    border-top: 1px solid var(--aw-color-border);
+    border-bottom: 1px solid var(--aw-color-border);
+    margin-bottom: 1.6rem;
+  }
+  .cert-meta-label {
+    display: block;
+    font-family: var(--font-geist-mono);
+    font-size: 0.62rem;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--aw-color-text-tertiary);
+    margin-bottom: 0.25rem;
+  }
+  .cert-meta-value {
+    font-size: 1.05rem;
+    font-weight: 600;
+    color: var(--aw-color-text-default);
+  }
+  .cert-foot {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 1rem;
+  }
+  .cert-sign {
+    text-align: left;
+  }
+  .cert-sign-line {
+    display: block;
+    width: 11rem;
+    border-top: 1px solid var(--aw-color-border-hover);
+    margin-bottom: 0.4rem;
+  }
+  .cert-sign-label {
+    font-size: 0.72rem;
+    color: var(--aw-color-text-tertiary);
+  }
+  .cert-id {
+    font-size: 0.66rem;
+    color: var(--aw-color-text-tertiary);
+  }
+  .cert.is-locked {
+    opacity: 0.55;
+    filter: grayscale(0.5);
+  }
+  @media print {
+    header,
+    footer,
+    .pg-toasts,
+    .pg-confetti {
+      display: none !important;
+    }
+    .cert {
+      background: #06b6d4 !important;
+    }
+    body {
+      background: #fff !important;
+    }
+  }
+</style>
+
+<script>
+  import { getProfile, getDone, getLevelInfo, today } from '~/lib/store';
+
+  function setup() {
+    const root = document.querySelector<HTMLElement>('[data-cert]');
+    if (!root) return;
+    const slug = location.pathname.split('/').filter(Boolean).pop() || '';
+    const courseSlug = location.pathname.includes('/certificado/') ? slug : '';
+    const profile = getProfile();
+    const done = getDone(courseSlug);
+    const li = getLevelInfo();
+
+    const set = (sel: string, t: string) => {
+      const el = document.querySelector(sel);
+      if (el) el.textContent = t;
+    };
+
+    set('[data-cert-name]', profile.name || 'Tu nombre');
+    set('[data-cert-rank]', `Nivel ${li.level} · ${li.rank}`);
+    set('[data-cert-date]', formatDate(today()));
+    set('[data-cert-id]', `ID ${makeId(courseSlug, profile.name)}`);
+
+    // Total esperado lo tomamos del DOM (ya renderizado en la meta).
+    const totalText = document.querySelector('.cert-meta-value')?.textContent || '0';
+    const total = Number(totalText) || 0;
+    const completed = done.size >= total && total > 0;
+
+    const locked = document.querySelector<HTMLElement>('[data-cert-locked]');
+    if (!completed) {
+      root.classList.add('is-locked');
+      if (locked) locked.hidden = false;
+      set('[data-cert-done]', String(done.size));
+      const bar = document.querySelector<HTMLElement>('[data-cert-bar]');
+      if (bar && total) bar.style.width = `${Math.round((done.size / total) * 100)}%`;
+    }
+
+    document.querySelector('[data-cert-print]')?.addEventListener('click', () => window.print());
+
+    function formatDate(iso: string): string {
+      const [y, m, d] = iso.split('-');
+      const meses = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic'];
+      return `${Number(d)} de ${meses[Number(m) - 1]} de ${y}`;
+    }
+    function makeId(course: string, name: string): string {
+      const s = (course + name + today()).split('').reduce((a, c) => (a * 33 + c.charCodeAt(0)) >>> 0, 5381);
+      return s.toString(36).toUpperCase().padStart(6, '0').slice(0, 8);
+    }
+  }
+
+  document.addEventListener('astro:page-load', setup);
+  if (document.readyState !== 'loading') setup();
+  else document.addEventListener('DOMContentLoaded', setup);
+</script>

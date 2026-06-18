@@ -5,50 +5,72 @@ import Layout from '~/layouts/Layout.astro';
 import { Icon } from 'astro-icon/components';
 import { courses, totalLessons, totalMinutes } from '~/data/learn';
 
+const featured = courses.find((c) => c.featured);
+const rest = courses.filter((c) => !c.featured);
+
 const features = [
   {
     icon: 'tabler:cursor-text',
-    title: 'Autocompletado guiado',
-    text: 'El editor te muestra exactamente qué poner. Aceptás con Tab y aprendés la sintaxis sin memorizar.',
+    title: 'Aprendé haciendo',
+    text: 'Nada de videos pasivos. Escribís código real, predecís salidas, arreglás bugs y resolvés retos. Tu programa corre en el navegador.',
   },
   {
-    icon: 'tabler:bulb',
-    title: 'Cada término, explicado',
-    text: 'Pasá el cursor por cualquier palabra subrayada y leé qué significa, justo cuando la necesitás.',
+    icon: 'tabler:robot',
+    title: 'Pensado para la era de la IA',
+    text: 'Te enseñamos lo que hoy importa: leer, depurar, especificar y verificar código — y trabajar con asistentes de IA sin perder el control.',
   },
   {
-    icon: 'tabler:player-play',
-    title: 'Se ejecuta de verdad',
-    text: 'Tu código corre en el navegador y ves la salida real en la consola. Probás, fallás y aprendés.',
+    icon: 'tabler:flame',
+    title: 'Progreso que engancha',
+    text: 'Ganás XP, subís de nivel, mantenés tu racha y desbloqueás logros y certificados. Todo guardado en tu navegador.',
   },
 ];
+
+const levelLabels: Record<string, string> = {
+  principiante: 'Principiante',
+  intermedio: 'Intermedio',
+  avanzado: 'Avanzado',
+};
 ---
 
 <Layout>
-  <!-- Hero -->
-  <section class="max-w-5xl mx-auto px-4 sm:px-6 pt-20 md:pt-28 pb-10 text-center">
+  {/* ── Hero ─────────────────────────────────────────────────── */}
+  <section class="max-w-5xl mx-auto px-4 sm:px-6 pt-16 md:pt-24 pb-10 text-center">
     <span
-      class="inline-block font-mono text-[0.72rem] uppercase tracking-[0.2em] text-[var(--aw-color-text-tertiary)] mb-5"
-      >Cursos interactivos</span
+      class="inline-flex items-center gap-2 font-mono text-[0.72rem] uppercase tracking-[0.18em] text-[var(--aw-color-text-tertiary)] mb-5"
     >
+      <Icon name="tabler:sparkles" class="w-3.5 h-3.5 text-primary" /> Cursos interactivos · era de la IA
+    </span>
     <h1
       class="font-heading font-semibold tracking-tight text-default leading-[1.05] text-4xl md:text-6xl mb-5 motion-safe:animate-fade"
     >
-      Aprendé a programar<br /> escribiendo código real
+      Aprendé a programar<br /> de verdad, no a memorizar
     </h1>
-    <p class="max-w-2xl mx-auto text-base md:text-lg text-muted leading-relaxed">
-      Desde cero, sin instalar nada. El editor te sugiere qué escribir, te explica cada término al instante y ejecuta tu
-      programa de verdad.
+    <p class="max-w-2xl mx-auto text-base md:text-lg text-muted leading-relaxed mb-8">
+      Escribís código real desde la primera línea, con autocompletado guiado y ejecución en tu navegador. Y aprendés lo
+      que hoy hace la diferencia: leer, depurar y trabajar con la IA. Sin instalar nada.
     </p>
+    <div class="flex flex-wrap items-center justify-center gap-3">
+      <a href={featured ? `/${featured.slug}` : '/javascript'} class="btn-primary">
+        Empezar gratis
+        <Icon name="tabler:arrow-right" class="w-4 h-4 ml-1.5 inline-block" />
+      </a>
+      <a
+        href="/progreso"
+        class="inline-flex items-center gap-2 text-sm rounded-lg border border-[var(--aw-color-border)] hover:border-[var(--aw-color-border-hover)] px-5 py-3 text-default transition-colors"
+      >
+        <Icon name="tabler:chart-bar" class="w-4 h-4" /> Ver mi progreso
+      </a>
+    </div>
   </section>
 
   <section class="max-w-5xl mx-auto px-4 sm:px-6 pb-16 md:pb-24">
-    <!-- Cómo funciona -->
-    <div class="grid sm:grid-cols-3 gap-4 mb-12">
+    {/* ── Cómo funciona ──────────────────────────────────────── */}
+    <div class="grid sm:grid-cols-3 gap-4 mb-14">
       {
         features.map((f) => (
           <div class="rounded-xl border border-[var(--aw-color-border)] bg-[var(--aw-color-bg-surface)] p-5">
-            <Icon name={f.icon} class="w-5 h-5 text-[var(--aw-color-text-muted)] mb-3" />
+            <Icon name={f.icon} class="w-5 h-5 text-primary mb-3" />
             <h3 class="text-sm font-semibold text-default mb-1">{f.title}</h3>
             <p class="text-sm text-muted leading-relaxed">{f.text}</p>
           </div>
@@ -56,11 +78,58 @@ const features = [
       }
     </div>
 
-    <h2 class="font-heading text-2xl md:text-3xl font-semibold tracking-tight text-default mb-6">Elegí tu lenguaje</h2>
+    {/* ── Curso destacado ────────────────────────────────────── */}
+    {
+      featured && (
+        <a
+          href={`/${featured.slug}`}
+          class="ct-course group relative block rounded-2xl border border-[var(--turquoise-border)] bg-[var(--turquoise-bg)] p-6 sm:p-8 mb-10 overflow-hidden transition-all duration-200 hover:shadow-[0_0_40px_var(--turquoise-glow)]"
+          data-course={featured.slug}
+        >
+          <div class="flex flex-col sm:flex-row sm:items-center gap-6">
+            <div class="grid place-items-center w-16 h-16 rounded-2xl bg-[var(--aw-color-bg-page)] border border-[var(--turquoise-border)] shrink-0">
+              <Icon name={featured.icon} class="w-9 h-9 text-primary" />
+            </div>
+            <div class="flex-1 min-w-0">
+              <div class="flex items-center gap-2 mb-1.5">
+                <span class="font-mono text-[0.62rem] uppercase tracking-wider text-primary border border-[var(--turquoise-border)] rounded px-1.5 py-0.5">
+                  Nuevo · destacado
+                </span>
+                <span class="font-mono text-[0.66rem] uppercase tracking-wider text-[var(--aw-color-text-tertiary)]">
+                  {levelLabels[featured.level ?? 'principiante']}
+                </span>
+              </div>
+              <h2 class="font-heading text-2xl font-semibold tracking-tight text-default mb-1.5">{featured.title}</h2>
+              <p class="text-[0.92rem] text-muted leading-relaxed mb-3 max-w-2xl">{featured.description}</p>
+              {featured.outcome && (
+                <p class="text-[0.85rem] text-default flex items-start gap-2">
+                  <Icon name="tabler:target" class="w-4 h-4 text-primary mt-0.5 shrink-0" />
+                  <span>{featured.outcome}</span>
+                </p>
+              )}
+              <div class="ct-course-progress mt-4 max-w-xs" data-total={totalLessons(featured)}>
+                <div class="h-[3px] rounded-full bg-[var(--aw-color-border)] overflow-hidden">
+                  <div class="ct-course-fill h-full w-0 rounded-full bg-primary transition-[width] duration-500" />
+                </div>
+                <span class="ct-course-meta mt-2 block font-mono text-[0.7rem] text-[var(--aw-color-text-tertiary)]">
+                  {totalLessons(featured)} lecciones · ~{totalMinutes(featured)} min
+                </span>
+              </div>
+            </div>
+            <Icon
+              name="tabler:arrow-right"
+              class="hidden sm:block w-6 h-6 text-primary transition-transform duration-200 group-hover:translate-x-1 shrink-0"
+            />
+          </div>
+        </a>
+      )
+    }
+
+    <h2 class="font-heading text-2xl md:text-3xl font-semibold tracking-tight text-default mb-6">Todos los cursos</h2>
 
     <div class="grid sm:grid-cols-2 gap-5">
       {
-        courses.map((course) => (
+        rest.map((course) => (
           <a
             href={`/${course.slug}`}
             class="ct-course group relative block rounded-2xl border border-[var(--aw-color-border)] bg-[var(--aw-color-bg-surface)] p-6 transition-all duration-200 hover:border-[var(--aw-color-border-hover)]"
@@ -68,8 +137,8 @@ const features = [
           >
             <div class="flex items-start justify-between mb-4">
               <Icon name={course.icon} class="w-9 h-9 text-default" />
-              <span class="font-mono text-[0.7rem] text-[var(--aw-color-text-tertiary)] uppercase tracking-wider">
-                {course.tagline}
+              <span class="font-mono text-[0.66rem] text-[var(--aw-color-text-tertiary)] uppercase tracking-wider">
+                {levelLabels[course.level ?? 'principiante']}
               </span>
             </div>
             <h3 class="font-heading text-xl font-semibold tracking-tight text-default mb-2">{course.title}</h3>
@@ -85,7 +154,6 @@ const features = [
               </span>
             </div>
 
-            {/* Barra de progreso (se completa desde localStorage) */}
             <div class="ct-course-progress" data-total={totalLessons(course)}>
               <div class="h-[3px] rounded-full bg-[var(--aw-color-border)] overflow-hidden">
                 <div class="ct-course-fill h-full w-0 rounded-full bg-primary transition-[width] duration-500" />
@@ -106,10 +174,36 @@ const features = [
         ))
       }
     </div>
+
+    {/* ── Tira de herramientas ───────────────────────────────── */}
+    <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 mt-14">
+      <a href="/playground" class="rounded-xl border border-[var(--aw-color-border)] bg-[var(--aw-color-bg-surface)] p-4 hover:border-[var(--aw-color-border-hover)] transition-colors">
+        <Icon name="tabler:terminal" class="w-5 h-5 text-primary mb-2" />
+        <div class="text-sm font-semibold text-default">Playground</div>
+        <div class="text-[0.78rem] text-muted">Probá código libre</div>
+      </a>
+      <a href="/progreso" class="rounded-xl border border-[var(--aw-color-border)] bg-[var(--aw-color-bg-surface)] p-4 hover:border-[var(--aw-color-border-hover)] transition-colors">
+        <Icon name="tabler:chart-bar" class="w-5 h-5 text-primary mb-2" />
+        <div class="text-sm font-semibold text-default">Progreso</div>
+        <div class="text-[0.78rem] text-muted">XP, racha y logros</div>
+      </a>
+      <a href="/glosario" class="rounded-xl border border-[var(--aw-color-border)] bg-[var(--aw-color-bg-surface)] p-4 hover:border-[var(--aw-color-border-hover)] transition-colors">
+        <Icon name="tabler:bulb" class="w-5 h-5 text-primary mb-2" />
+        <div class="text-sm font-semibold text-default">Glosario</div>
+        <div class="text-[0.78rem] text-muted">Cada término explicado</div>
+      </a>
+      <a href="/perfil" class="rounded-xl border border-[var(--aw-color-border)] bg-[var(--aw-color-bg-surface)] p-4 hover:border-[var(--aw-color-border-hover)] transition-colors">
+        <Icon name="tabler:certificate" class="w-5 h-5 text-primary mb-2" />
+        <div class="text-sm font-semibold text-default">Certificados</div>
+        <div class="text-[0.78rem] text-muted">Diploma al terminar</div>
+      </a>
+    </div>
   </section>
 </Layout>
 
 <script>
+  import { getDone } from '~/lib/store';
+
   // Pinta el progreso de cada curso desde localStorage (lecciones completadas).
   function paintProgress() {
     document.querySelectorAll<HTMLElement>('.ct-course').forEach((card) => {
@@ -117,17 +211,12 @@ const features = [
       const wrap = card.querySelector<HTMLElement>('.ct-course-progress');
       if (!slug || !wrap) return;
       const total = Number(wrap.dataset.total || '0');
-      let done = 0;
-      try {
-        done = new Set<string>(JSON.parse(localStorage.getItem(`ct:done:${slug}`) || '[]')).size;
-      } catch {
-        done = 0;
-      }
+      const done = getDone(slug).size;
       const pct = total ? Math.round((done / total) * 100) : 0;
       const fill = wrap.querySelector<HTMLElement>('.ct-course-fill');
       const meta = wrap.querySelector<HTMLElement>('.ct-course-meta');
       if (fill) fill.style.width = `${pct}%`;
-      if (meta) meta.textContent = done === 0 ? 'Sin empezar' : `${done}/${total} lecciones completadas`;
+      if (meta && done > 0) meta.textContent = `${done}/${total} lecciones · ${pct}%`;
     });
   }
   document.addEventListener('astro:page-load', paintProgress);

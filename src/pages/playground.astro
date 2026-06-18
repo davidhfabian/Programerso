@@ -1,0 +1,264 @@
+---
+export const prerender = true;
+import Layout from '~/layouts/Layout.astro';
+import { Icon } from 'astro-icon/components';
+---
+
+<Layout title="Playground" description="Editor libre para probar JavaScript y Python en tu navegador, sin instalar nada.">
+  <section class="max-w-5xl mx-auto px-4 sm:px-6 pt-10 md:pt-14 pb-20">
+    <div class="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-3 mb-6">
+      <div>
+        <p class="font-mono text-[0.72rem] uppercase tracking-[0.18em] text-[var(--aw-color-text-tertiary)] mb-2">Experimentá</p>
+        <h1 class="font-heading text-3xl md:text-4xl font-semibold tracking-tight text-default">Playground</h1>
+        <p class="text-muted text-[0.92rem] mt-1">Escribí lo que quieras y ejecutalo de verdad. Sin instalar nada.</p>
+      </div>
+      <div class="flex items-center gap-1 rounded-lg border border-[var(--aw-color-border)] p-1 self-start" role="tablist" aria-label="Lenguaje">
+        <button type="button" data-pl-lang="javascript" class="pl-lang px-3 py-1.5 rounded-md text-sm transition-colors">JavaScript</button>
+        <button type="button" data-pl-lang="python" class="pl-lang px-3 py-1.5 rounded-md text-sm transition-colors">Python</button>
+      </div>
+    </div>
+
+    <div class="grid lg:grid-cols-2 gap-4">
+      <div class="rounded-2xl border border-[var(--aw-color-border)] bg-[var(--aw-color-bg-page)] overflow-hidden flex flex-col">
+        <div class="flex items-center gap-2 px-3 py-2 border-b border-[var(--aw-color-border)]">
+          <span class="ct-dots-pl flex gap-1.5" aria-hidden="true">
+            <span class="w-2.5 h-2.5 rounded-full bg-[var(--aw-color-border-hover)]"></span>
+            <span class="w-2.5 h-2.5 rounded-full bg-[var(--aw-color-border-hover)]"></span>
+            <span class="w-2.5 h-2.5 rounded-full bg-[var(--aw-color-border-hover)]"></span>
+          </span>
+          <span class="font-mono text-[0.72rem] text-[var(--aw-color-text-tertiary)] flex-1" data-pl-filename>script.js</span>
+          <button type="button" data-pl-share class="font-mono text-[0.7rem] text-muted hover:text-default" title="Copiar enlace para compartir">⎘ compartir</button>
+        </div>
+        <textarea
+          class="pl-editor font-mono"
+          data-pl-editor
+          spellcheck="false"
+          autocomplete="off"
+          autocapitalize="off"
+          autocorrect="off"
+          aria-label="Editor de código"></textarea>
+      </div>
+
+      <div class="rounded-2xl border border-[var(--aw-color-border)] bg-[var(--aw-color-bg-surface)] overflow-hidden flex flex-col">
+        <div class="flex items-center justify-between px-3 py-2 border-b border-[var(--aw-color-border)]">
+          <span class="font-mono text-[0.7rem] uppercase tracking-wider text-[var(--aw-color-text-tertiary)]">salida</span>
+          <div class="flex items-center gap-2">
+            <button type="button" data-pl-clear class="font-mono text-[0.7rem] text-muted hover:text-default">limpiar</button>
+            <button type="button" data-pl-run class="font-mono text-[0.72rem] text-default border border-[var(--turquoise-border)] rounded-md px-2.5 py-1 hover:bg-[var(--turquoise-bg)]">▶ Ejecutar <kbd class="text-[0.6rem] text-[var(--aw-color-text-tertiary)]">⌘↵</kbd></button>
+          </div>
+        </div>
+        <pre class="pl-out font-mono" data-pl-out></pre>
+      </div>
+    </div>
+
+    {/* Ejemplos */}
+    <div class="mt-6">
+      <h2 class="text-sm font-semibold text-default mb-3 flex items-center gap-2">
+        <Icon name="tabler:sparkles" class="w-4 h-4 text-primary" /> Ejemplos para arrancar
+      </h2>
+      <div class="flex flex-wrap gap-2" data-pl-examples></div>
+    </div>
+  </section>
+</Layout>
+
+<style>
+  .pl-lang {
+    color: var(--aw-color-text-muted);
+  }
+  .pl-lang.is-active {
+    background: var(--aw-color-bg-surface);
+    color: var(--aw-color-text-default);
+  }
+  .pl-editor {
+    flex: 1;
+    min-height: 340px;
+    resize: vertical;
+    background: transparent;
+    border: none;
+    outline: none;
+    color: var(--aw-color-text-default);
+    font-size: 0.86rem;
+    line-height: 1.7;
+    padding: 1rem;
+    white-space: pre;
+    tab-size: 2;
+  }
+  .pl-out {
+    flex: 1;
+    min-height: 340px;
+    margin: 0;
+    padding: 1rem;
+    font-size: 0.82rem;
+    line-height: 1.6;
+    color: var(--aw-color-text-muted);
+    white-space: pre-wrap;
+    word-break: break-word;
+    overflow: auto;
+  }
+  .pl-out.is-err {
+    color: #ef4444;
+  }
+  .pl-out.is-muted {
+    color: var(--aw-color-text-tertiary);
+    font-style: italic;
+  }
+  .pl-example {
+    font-size: 0.8rem;
+    color: var(--aw-color-text-muted);
+    border: 1px solid var(--aw-color-border);
+    border-radius: 8px;
+    padding: 0.4rem 0.7rem;
+    cursor: pointer;
+    transition: all 0.15s ease;
+  }
+  .pl-example:hover {
+    border-color: var(--aw-color-border-hover);
+    color: var(--aw-color-text-default);
+  }
+</style>
+
+<script>
+  import { runJs, runPy } from '~/lib/runner';
+
+  type Lang = 'javascript' | 'python';
+
+  const STARTERS: Record<Lang, string> = {
+    javascript: `// Probá lo que quieras. console.log muestra resultados.\nconst nombres = ["Ada", "Linus", "Grace"];\nfor (const n of nombres) {\n  console.log("Hola, " + n + "!");\n}`,
+    python: `# Probá lo que quieras. print muestra resultados.\nnombres = ["Ada", "Linus", "Grace"]\nfor n in nombres:\n    print(f"Hola, {n}!")`,
+  };
+
+  const EXAMPLES: Record<Lang, { label: string; code: string }[]> = {
+    javascript: [
+      { label: 'Bucle y suma', code: 'let total = 0;\nfor (let i = 1; i <= 10; i++) total += i;\nconsole.log("Suma 1..10 =", total);' },
+      { label: 'Función', code: 'function factorial(n) {\n  return n <= 1 ? 1 : n * factorial(n - 1);\n}\nconsole.log(factorial(5));' },
+      { label: 'Filtrar lista', code: 'const nums = [3, 8, 1, 9, 4];\nconst grandes = nums.filter((n) => n > 4);\nconsole.log(grandes);' },
+    ],
+    python: [
+      { label: 'Bucle y suma', code: 'total = 0\nfor i in range(1, 11):\n    total += i\nprint("Suma 1..10 =", total)' },
+      { label: 'Función', code: 'def factorial(n):\n    return 1 if n <= 1 else n * factorial(n - 1)\nprint(factorial(5))' },
+      { label: 'Comprensión', code: 'nums = [3, 8, 1, 9, 4]\ngrandes = [n for n in nums if n > 4]\nprint(grandes)' },
+    ],
+  };
+
+  function setup() {
+    const editor = document.querySelector<HTMLTextAreaElement>('[data-pl-editor]');
+    const out = document.querySelector<HTMLElement>('[data-pl-out]');
+    if (!editor || !out) return;
+    let lang: Lang = 'javascript';
+
+    const filename = document.querySelector<HTMLElement>('[data-pl-filename]');
+    const examplesWrap = document.querySelector<HTMLElement>('[data-pl-examples]');
+
+    function setLang(l: Lang, keepCode = false) {
+      lang = l;
+      document.querySelectorAll<HTMLElement>('.pl-lang').forEach((b) =>
+        b.classList.toggle('is-active', b.dataset.plLang === l)
+      );
+      if (filename) filename.textContent = l === 'python' ? 'script.py' : 'script.js';
+      if (!keepCode) editor!.value = STARTERS[l];
+      renderExamples();
+      setMuted('// la salida aparece acá. Tocá ▶ Ejecutar (o ⌘/Ctrl + Enter)');
+    }
+
+    function renderExamples() {
+      if (!examplesWrap) return;
+      examplesWrap.replaceChildren();
+      EXAMPLES[lang].forEach((ex) => {
+        const b = document.createElement('button');
+        b.type = 'button';
+        b.className = 'pl-example';
+        b.textContent = ex.label;
+        b.addEventListener('click', () => {
+          editor!.value = ex.code;
+          run();
+        });
+        examplesWrap.appendChild(b);
+      });
+    }
+
+    function setMuted(t: string) {
+      out!.className = 'pl-out font-mono is-muted';
+      out!.textContent = t;
+    }
+
+    async function run() {
+      setMuted(lang === 'python' ? '// ejecutando Python (WebAssembly)…' : '// ejecutando…');
+      const res = lang === 'python' ? await runPy(editor!.value) : runJs(editor!.value);
+      if (res.loadFailed) {
+        out!.className = 'pl-out font-mono is-muted';
+        out!.textContent = '// no se pudo cargar el motor de Python en este entorno.';
+        return;
+      }
+      if (!res.ok) {
+        out!.className = 'pl-out font-mono is-err';
+        out!.textContent = res.output || 'Error';
+        return;
+      }
+      if (!res.output) {
+        setMuted('// sin salida (tu código no imprimió nada)');
+        return;
+      }
+      out!.className = 'pl-out font-mono';
+      out!.textContent = res.output + (res.ms != null ? `\n\n// ✓ ${Math.round(res.ms)} ms` : '');
+    }
+
+    document.querySelectorAll<HTMLElement>('.pl-lang').forEach((b) =>
+      b.addEventListener('click', () => setLang(b.dataset.plLang as Lang))
+    );
+    document.querySelector('[data-pl-run]')?.addEventListener('click', run);
+    document.querySelector('[data-pl-clear]')?.addEventListener('click', () => setMuted('// limpio'));
+    editor.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) {
+        e.preventDefault();
+        run();
+      } else if (e.key === 'Tab') {
+        e.preventDefault();
+        const s = editor.selectionStart;
+        const en = editor.selectionEnd;
+        editor.value = editor.value.slice(0, s) + '  ' + editor.value.slice(en);
+        editor.selectionStart = editor.selectionEnd = s + 2;
+      }
+    });
+
+    // Compartir vía hash (#lang/base64)
+    document.querySelector('[data-pl-share]')?.addEventListener('click', async () => {
+      try {
+        const b64 = btoa(String.fromCharCode(...new TextEncoder().encode(editor.value)));
+        const payload = lang + '|' + b64;
+        const url = `${location.origin}${location.pathname}#${payload}`;
+        await navigator.clipboard.writeText(url);
+        const btn = document.querySelector<HTMLElement>('[data-pl-share]');
+        if (btn) {
+          const prev = btn.textContent;
+          btn.textContent = '✓ copiado';
+          setTimeout(() => (btn.textContent = prev), 1500);
+        }
+      } catch {
+        /* noop */
+      }
+    });
+
+    // Cargar desde hash si existe
+    let loadedFromHash = false;
+    if (location.hash.length > 1) {
+      try {
+        const raw = decodeURIComponent(location.hash.slice(1));
+        const sep = raw.indexOf('|');
+        const l = raw.slice(0, sep) as Lang;
+        const code = new TextDecoder().decode(Uint8Array.from(atob(raw.slice(sep + 1)), (ch) => ch.charCodeAt(0)));
+        if ((l === 'javascript' || l === 'python') && code) {
+          setLang(l, true);
+          editor.value = code;
+          loadedFromHash = true;
+        }
+      } catch {
+        /* noop */
+      }
+    }
+    if (!loadedFromHash) setLang('javascript');
+  }
+
+  document.addEventListener('astro:page-load', setup);
+  if (document.readyState !== 'loading') setup();
+  else document.addEventListener('DOMContentLoaded', setup);
+</script>

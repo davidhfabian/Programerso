@@ -38,9 +38,24 @@ const firstLesson = lessonsFlat[0];
       </div>
     </div>
 
-    <p class="text-base text-muted leading-relaxed max-w-2xl mb-6">{course.description}</p>
+    <p class="text-base text-muted leading-relaxed max-w-2xl mb-4">{course.description}</p>
+
+    {
+      course.outcome && (
+        <p class="flex items-start gap-2 text-[0.9rem] text-default bg-[var(--turquoise-bg)] border border-[var(--turquoise-border)] rounded-xl px-4 py-3 max-w-2xl mb-6">
+          <Icon name="tabler:target" class="w-4 h-4 text-primary mt-0.5 shrink-0" />
+          <span>
+            <strong>Al terminar:</strong> {course.outcome}
+          </span>
+        </p>
+      )
+    }
 
     <div class="flex flex-wrap items-center gap-4 font-mono text-[0.75rem] text-[var(--aw-color-text-tertiary)] mb-8">
+      <span class="inline-flex items-center gap-1.5">
+        <Icon name="tabler:trending-up" class="w-3.5 h-3.5" />
+        {course.level ?? 'principiante'}
+      </span>
       <span class="inline-flex items-center gap-1.5">
         <Icon name="tabler:books" class="w-3.5 h-3.5" />
         {totalLessons(course)} lecciones

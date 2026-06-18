@@ -1,0 +1,20 @@
+{
+  "name": "Programerso — Aprendé a programar",
+  "short_name": "Programerso",
+  "description": "Cursos interactivos para aprender a programar desde cero y en la era de la IA. Código real en tu navegador, con XP, rachas y certificados.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#000000",
+  "theme_color": "#06b6d4",
+  "lang": "es",
+  "categories": ["education", "productivity"],
+  "icons": [
+    {
+      "src": "/favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}

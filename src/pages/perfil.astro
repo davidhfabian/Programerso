@@ -1,0 +1,281 @@
+---
+export const prerender = true;
+import Layout from '~/layouts/Layout.astro';
+import { Icon } from 'astro-icon/components';
+---
+
+<Layout title="Mi perfil" description="Tu cuenta, metas y certificados en Programerso.">
+  <section class="max-w-xl mx-auto px-4 sm:px-6 pt-12 md:pt-16 pb-20">
+    <p class="font-mono text-[0.72rem] uppercase tracking-[0.18em] text-[var(--aw-color-text-tertiary)] mb-2">Cuenta</p>
+    <h1 class="font-heading text-3xl md:text-4xl font-semibold tracking-tight text-default mb-3">Tu perfil</h1>
+    <p class="text-muted leading-relaxed mb-8 text-[0.95rem]">
+      Tu cuenta es <strong class="text-default">local y privada</strong>: vive en este navegador, sin contraseñas ni
+      emails que recordar. Para llevarla a otro dispositivo, exportá tu progreso desde
+      <a href="/progreso" class="text-primary hover:underline">Progreso</a>.
+    </p>
+
+    {/* ── Registro / crear perfil ────────────────────────────── */}
+    <div class="rounded-2xl border border-[var(--aw-color-border)] bg-[var(--aw-color-bg-surface)] p-6" data-pf-create hidden>
+      <h2 class="font-heading text-lg font-semibold text-default mb-1">Creá tu perfil</h2>
+      <p class="text-[0.85rem] text-muted mb-5">Con un nombre alcanza. Lo usamos en tu panel y en tus certificados.</p>
+      <form data-pf-form class="space-y-4">
+        <div>
+          <label class="block text-[0.8rem] text-muted mb-1.5" for="pf-name">¿Cómo te llamás?</label>
+          <input
+            id="pf-name"
+            type="text"
+            required
+            maxlength="40"
+            placeholder="Tu nombre"
+            data-pf-name
+            class="w-full rounded-lg border border-[var(--aw-color-border)] bg-[var(--aw-color-bg-page)] px-3.5 py-2.5 text-default outline-none focus:border-[var(--aw-color-primary)]"
+          />
+        </div>
+        <div>
+          <label class="block text-[0.8rem] text-muted mb-1.5">Elegí un avatar</label>
+          <div class="flex flex-wrap gap-2" data-pf-avatars></div>
+        </div>
+        <button type="submit" class="btn-primary w-full">
+          Empezar a aprender
+          <Icon name="tabler:arrow-right" class="w-4 h-4 ml-1.5 inline-block" />
+        </button>
+      </form>
+    </div>
+
+    {/* ── Perfil existente ───────────────────────────────────── */}
+    <div data-pf-view hidden>
+      <div class="rounded-2xl border border-[var(--aw-color-border)] bg-[var(--aw-color-bg-surface)] p-6 mb-6">
+        <div class="flex items-center gap-4">
+          <div class="grid place-items-center w-16 h-16 rounded-2xl bg-[var(--turquoise-bg)] border border-[var(--turquoise-border)] text-3xl" data-pf-avatar>🦊</div>
+          <div class="min-w-0">
+            <h2 class="font-heading text-xl font-semibold text-default truncate" data-pf-display>—</h2>
+            <p class="text-[0.82rem] text-muted">
+              Nivel <span data-pf-level>1</span> · <span data-pf-rank>Curioso</span> · <span data-pf-xp>0</span> XP
+            </p>
+            <p class="text-[0.74rem] text-[var(--aw-color-text-tertiary)] mt-0.5" data-pf-since>Miembro desde hoy</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="grid grid-cols-3 gap-3 mb-6">
+        <a href="/progreso" class="rounded-xl border border-[var(--aw-color-border)] bg-[var(--aw-color-bg-surface)] p-4 text-center hover:border-[var(--aw-color-border-hover)] transition-colors">
+          <Icon name="tabler:flame" class="w-5 h-5 mx-auto mb-1.5 text-primary" />
+          <div class="text-xl font-semibold text-default" data-pf-streak>0</div>
+          <div class="text-[0.68rem] text-muted">racha</div>
+        </a>
+        <a href="/progreso" class="rounded-xl border border-[var(--aw-color-border)] bg-[var(--aw-color-bg-surface)] p-4 text-center hover:border-[var(--aw-color-border-hover)] transition-colors">
+          <Icon name="tabler:books" class="w-5 h-5 mx-auto mb-1.5 text-primary" />
+          <div class="text-xl font-semibold text-default" data-pf-lessons>0</div>
+          <div class="text-[0.68rem] text-muted">lecciones</div>
+        </a>
+        <a href="/progreso" class="rounded-xl border border-[var(--aw-color-border)] bg-[var(--aw-color-bg-surface)] p-4 text-center hover:border-[var(--aw-color-border-hover)] transition-colors">
+          <Icon name="tabler:trophy" class="w-5 h-5 mx-auto mb-1.5 text-primary" />
+          <div class="text-xl font-semibold text-default" data-pf-ach>0</div>
+          <div class="text-[0.68rem] text-muted">logros</div>
+        </a>
+      </div>
+
+      <div class="rounded-2xl border border-[var(--aw-color-border)] bg-[var(--aw-color-bg-surface)] p-6 mb-6">
+        <h3 class="text-sm font-semibold text-default mb-4">Editar</h3>
+        <div class="flex items-end gap-3">
+          <div class="flex-1">
+            <label class="block text-[0.8rem] text-muted mb-1.5" for="pf-rename">Nombre</label>
+            <input
+              id="pf-rename"
+              type="text"
+              maxlength="40"
+              data-pf-rename
+              class="w-full rounded-lg border border-[var(--aw-color-border)] bg-[var(--aw-color-bg-page)] px-3.5 py-2.5 text-default outline-none focus:border-[var(--aw-color-primary)]"
+            />
+          </div>
+          <button type="button" data-pf-save class="btn-primary shrink-0">Guardar</button>
+        </div>
+        <div class="mt-4">
+          <label class="block text-[0.8rem] text-muted mb-1.5">Avatar</label>
+          <div class="flex flex-wrap gap-2" data-pf-avatars-edit></div>
+        </div>
+      </div>
+
+      <div class="rounded-2xl border border-[var(--aw-color-border)] p-6">
+        <h3 class="text-sm font-semibold text-default mb-1">Certificados</h3>
+        <p class="text-[0.82rem] text-muted mb-4">Completá un curso para desbloquear su diploma con tu nombre.</p>
+        <div class="space-y-2" data-pf-certs></div>
+      </div>
+
+      <button type="button" data-pf-signout class="mt-6 text-[0.82rem] text-muted hover:text-red-500 transition-colors">
+        Cerrar sesión (borra sólo el nombre, no el progreso)
+      </button>
+    </div>
+  </section>
+</Layout>
+
+<script>
+  import { getProfile, setProfile, getLevelInfo, getXp, liveStreak, getAchievements, getDone, today } from '~/lib/store';
+
+  const AVATARS = ['🦊', '🐙', '🦉', '🐢', '🚀', '🤖', '🐝', '🦄', '🐬', '🐧', '🦁', '👾'];
+
+  // Curso list para certificados (debe coincidir con el currículum).
+  const COURSES = [
+    { slug: 'ia', title: 'Programar en la era de la IA' },
+    { slug: 'javascript', title: 'JavaScript desde cero' },
+    { slug: 'python', title: 'Python desde cero' },
+  ];
+
+  function getAvatar(): string {
+    try {
+      return localStorage.getItem('pg:avatar') || '🦊';
+    } catch {
+      return '🦊';
+    }
+  }
+  function setAvatar(a: string) {
+    try {
+      localStorage.setItem('pg:avatar', a);
+    } catch {
+      /* noop */
+    }
+  }
+
+  function setup() {
+    const create = document.querySelector<HTMLElement>('[data-pf-create]');
+    const view = document.querySelector<HTMLElement>('[data-pf-view]');
+    if (!create || !view) return;
+    const profile = getProfile();
+    const hasProfile = !!profile.name;
+    create.hidden = hasProfile;
+    view.hidden = !hasProfile;
+
+    let chosenAvatar = getAvatar();
+
+    // Galería de avatares (crear)
+    const gallery = document.querySelector<HTMLElement>('[data-pf-avatars]');
+    if (gallery) {
+      gallery.replaceChildren();
+      AVATARS.forEach((a) => {
+        const b = document.createElement('button');
+        b.type = 'button';
+        b.className =
+          'avatar-pick w-10 h-10 rounded-xl border border-[var(--aw-color-border)] text-xl grid place-items-center hover:border-[var(--aw-color-border-hover)]';
+        b.textContent = a;
+        if (a === chosenAvatar) b.classList.add('!border-[var(--turquoise-border)]', 'bg-[var(--turquoise-bg)]');
+        b.addEventListener('click', () => {
+          chosenAvatar = a;
+          gallery.querySelectorAll('.avatar-pick').forEach((x) =>
+            x.classList.remove('!border-[var(--turquoise-border)]', 'bg-[var(--turquoise-bg)]')
+          );
+          b.classList.add('!border-[var(--turquoise-border)]', 'bg-[var(--turquoise-bg)]');
+        });
+        gallery.appendChild(b);
+      });
+    }
+
+    // Crear perfil
+    const form = document.querySelector<HTMLFormElement>('[data-pf-form]');
+    form?.addEventListener('submit', (e) => {
+      e.preventDefault();
+      const name = (document.querySelector<HTMLInputElement>('[data-pf-name]')?.value || '').trim();
+      if (!name) return;
+      setProfile({ name });
+      setAvatar(chosenAvatar);
+      location.reload();
+    });
+
+    if (!hasProfile) return;
+
+    // ── Vista del perfil ──────────────────────────────────────
+    const li = getLevelInfo();
+    const st = liveStreak();
+    const set = (sel: string, t: string) => {
+      const el = document.querySelector(sel);
+      if (el) el.textContent = t;
+    };
+    set('[data-pf-display]', profile.name);
+    set('[data-pf-level]', String(li.level));
+    set('[data-pf-rank]', li.rank);
+    set('[data-pf-xp]', String(getXp()));
+    set('[data-pf-since]', `Miembro desde ${profile.createdAt}`);
+    set('[data-pf-streak]', String(st.count));
+    set('[data-pf-ach]', String(getAchievements().size));
+    const avatarEl = document.querySelector<HTMLElement>('[data-pf-avatar]');
+    if (avatarEl) avatarEl.textContent = chosenAvatar;
+    const renameEl = document.querySelector<HTMLInputElement>('[data-pf-rename]');
+    if (renameEl) renameEl.value = profile.name;
+
+    let totalDone = 0;
+    for (const c of COURSES) totalDone += getDone(c.slug).size;
+    set('[data-pf-lessons]', String(totalDone));
+
+    // Galería de avatares (editar)
+    const gallery2 = document.querySelector<HTMLElement>('[data-pf-avatars-edit]');
+    if (gallery2) {
+      gallery2.replaceChildren();
+      AVATARS.forEach((a) => {
+        const b = document.createElement('button');
+        b.type = 'button';
+        b.className =
+          'w-10 h-10 rounded-xl border border-[var(--aw-color-border)] text-xl grid place-items-center hover:border-[var(--aw-color-border-hover)]';
+        b.textContent = a;
+        if (a === chosenAvatar) b.classList.add('!border-[var(--turquoise-border)]', 'bg-[var(--turquoise-bg)]');
+        b.addEventListener('click', () => {
+          setAvatar(a);
+          if (avatarEl) avatarEl.textContent = a;
+          gallery2.querySelectorAll('button').forEach((x) =>
+            x.classList.remove('!border-[var(--turquoise-border)]', 'bg-[var(--turquoise-bg)]')
+          );
+          b.classList.add('!border-[var(--turquoise-border)]', 'bg-[var(--turquoise-bg)]');
+        });
+        gallery2.appendChild(b);
+      });
+    }
+
+    document.querySelector('[data-pf-save]')?.addEventListener('click', () => {
+      const name = (renameEl?.value || '').trim();
+      if (name) {
+        setProfile({ name });
+        set('[data-pf-display]', name);
+      }
+    });
+
+    // Certificados
+    const certs = document.querySelector<HTMLElement>('[data-pf-certs]');
+    if (certs) {
+      certs.replaceChildren();
+      for (const c of COURSES) {
+        const done = getDone(c.slug).size;
+        const row = document.createElement('div');
+        row.className = 'flex items-center justify-between gap-3 rounded-lg border border-[var(--aw-color-border)] px-4 py-3';
+        const label = document.createElement('span');
+        label.className = 'text-[0.88rem] text-default';
+        label.textContent = c.title;
+        row.appendChild(label);
+        const link = document.createElement('a');
+        if (done > 0) {
+          link.href = `/certificado/${c.slug}`;
+          link.className = 'text-[0.82rem] text-primary hover:underline';
+          link.textContent = done >= 1 ? 'Ver diploma →' : '';
+        } else {
+          link.className = 'text-[0.82rem] text-[var(--aw-color-text-tertiary)]';
+          link.textContent = 'Bloqueado';
+        }
+        row.appendChild(link);
+        certs.appendChild(row);
+      }
+    }
+
+    document.querySelector('[data-pf-signout]')?.addEventListener('click', () => {
+      if (confirm('¿Cerrar sesión? Se borra tu nombre y avatar, pero tu progreso y XP quedan intactos.')) {
+        try {
+          localStorage.removeItem('pg:profile');
+          localStorage.removeItem('pg:avatar');
+        } catch {
+          /* noop */
+        }
+        location.reload();
+      }
+    });
+  }
+
+  document.addEventListener('astro:page-load', setup);
+  if (document.readyState !== 'loading') setup();
+  else document.addEventListener('DOMContentLoaded', setup);
+</script>

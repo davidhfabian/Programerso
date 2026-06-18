@@ -1,0 +1,447 @@
+---
+export const prerender = true;
+
+import Layout from '~/layouts/Layout.astro';
+import { Icon } from 'astro-icon/components';
+import { courses, flattenLessons, totalLessons } from '~/data/learn';
+import { ACHIEVEMENTS, RANKS } from '~/lib/store';
+
+// Datos del currículum para el cliente (el progreso real se lee de localStorage).
+const courseMeta = courses.map((c) => ({
+  slug: c.slug,
+  title: c.title,
+  icon: c.icon,
+  level: c.level ?? 'principiante',
+  total: totalLessons(c),
+}));
+
+const lessonLookup: Record<string, string> = {};
+for (const c of courses) {
+  for (const l of flattenLessons(c)) lessonLookup[`${c.slug}/${l.slug}`] = `${c.title} · ${l.title}`;
+}
+
+const payload = { courses: courseMeta, lessons: lessonLookup };
+const json = JSON.stringify(payload).replace(/</g, '\\u003c');
+---
+
+<Layout title="Mi progreso" description="Tu nivel, XP, racha, logros y certificados en Programerso.">
+  <section class="max-w-5xl mx-auto px-4 sm:px-6 pt-10 md:pt-14 pb-20">
+    <script type="application/json" data-pg-data is:inline set:html={json} />
+
+    {/* ── Encabezado: nivel + XP ─────────────────────────────── */}
+    <div class="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4 mb-8">
+      <div>
+        <p class="font-mono text-[0.72rem] uppercase tracking-[0.18em] text-[var(--aw-color-text-tertiary)] mb-2">
+          Tu progreso
+        </p>
+        <h1 class="font-heading text-3xl md:text-4xl font-semibold tracking-tight text-default" data-pg-greeting>
+          Hola 👋
+        </h1>
+      </div>
+      <a href="/perfil" class="inline-flex items-center gap-2 text-sm text-muted hover:text-default transition-colors">
+        <Icon name="tabler:user" class="w-4 h-4" /> Editar perfil
+      </a>
+    </div>
+
+    {/* ── Tarjetas de stats ──────────────────────────────────── */}
+    <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+      <div class="rounded-2xl border border-[var(--aw-color-border)] bg-[var(--aw-color-bg-surface)] p-5">
+        <div class="flex items-center gap-2 text-[var(--aw-color-text-tertiary)] mb-2">
+          <Icon name="tabler:trending-up" class="w-4 h-4" />
+          <span class="font-mono text-[0.68rem] uppercase tracking-wider">Nivel</span>
+        </div>
+        <div class="text-3xl font-semibold text-default" data-pg-level>1</div>
+        <div class="text-[0.8rem] text-muted" data-pg-rank>Curioso</div>
+        <div class="mt-3 h-1.5 rounded-full bg-[var(--aw-color-border)] overflow-hidden">
+          <div class="h-full rounded-full bg-primary transition-[width] duration-700" data-pg-level-bar style="width:0%"></div>
+        </div>
+        <div class="mt-1.5 font-mono text-[0.66rem] text-[var(--aw-color-text-tertiary)]" data-pg-level-xp>0 / 0 XP</div>
+      </div>
+
+      <div class="rounded-2xl border border-[var(--aw-color-border)] bg-[var(--aw-color-bg-surface)] p-5">
+        <div class="flex items-center gap-2 text-[var(--aw-color-text-tertiary)] mb-2">
+          <Icon name="tabler:bolt" class="w-4 h-4" />
+          <span class="font-mono text-[0.68rem] uppercase tracking-wider">XP total</span>
+        </div>
+        <div class="text-3xl font-semibold text-default" data-pg-xp>0</div>
+        <div class="text-[0.8rem] text-muted">puntos de experiencia</div>
+      </div>
+
+      <div class="rounded-2xl border border-[var(--aw-color-border)] bg-[var(--aw-color-bg-surface)] p-5">
+        <div class="flex items-center gap-2 text-[var(--aw-color-text-tertiary)] mb-2">
+          <Icon name="tabler:flame" class="w-4 h-4" />
+          <span class="font-mono text-[0.68rem] uppercase tracking-wider">Racha</span>
+        </div>
+        <div class="text-3xl font-semibold text-default" data-pg-streak>0</div>
+        <div class="text-[0.8rem] text-muted" data-pg-streak-best>récord: 0 días</div>
+      </div>
+
+      <div class="rounded-2xl border border-[var(--aw-color-border)] bg-[var(--aw-color-bg-surface)] p-5">
+        <div class="flex items-center gap-2 text-[var(--aw-color-text-tertiary)] mb-2">
+          <Icon name="tabler:books" class="w-4 h-4" />
+          <span class="font-mono text-[0.68rem] uppercase tracking-wider">Lecciones</span>
+        </div>
+        <div class="text-3xl font-semibold text-default" data-pg-lessons>0</div>
+        <div class="text-[0.8rem] text-muted">completadas</div>
+      </div>
+    </div>
+
+    {/* ── Meta diaria ────────────────────────────────────────── */}
+    <div class="rounded-2xl border border-[var(--aw-color-border)] bg-[var(--aw-color-bg-surface)] p-5 sm:p-6 mb-8">
+      <div class="flex items-center justify-between gap-4 flex-wrap">
+        <div class="flex items-center gap-4">
+          <div class="relative w-16 h-16 shrink-0">
+            <svg viewBox="0 0 36 36" class="w-16 h-16 -rotate-90">
+              <circle cx="18" cy="18" r="15.5" fill="none" stroke="var(--aw-color-border)" stroke-width="3"></circle>
+              <circle
+                cx="18"
+                cy="18"
+                r="15.5"
+                fill="none"
+                stroke="var(--aw-color-primary)"
+                stroke-width="3"
+                stroke-linecap="round"
+                stroke-dasharray="97.4"
+                stroke-dashoffset="97.4"
+                data-pg-goal-ring
+                style="transition: stroke-dashoffset 0.7s ease"></circle>
+            </svg>
+            <div class="absolute inset-0 grid place-items-center font-mono text-[0.7rem] text-default" data-pg-goal-pct>0%</div>
+          </div>
+          <div>
+            <h2 class="text-sm font-semibold text-default mb-0.5">Meta de hoy</h2>
+            <p class="text-[0.82rem] text-muted">
+              <span data-pg-goal-today>0</span> / <span data-pg-goal-target>40</span> XP hoy
+            </p>
+          </div>
+        </div>
+        <div class="flex items-center gap-2">
+          <span class="text-[0.78rem] text-muted">Meta diaria:</span>
+          <div class="flex items-center rounded-lg border border-[var(--aw-color-border)]">
+            <button type="button" data-pg-goal-dec class="px-2.5 py-1 text-muted hover:text-default" aria-label="Bajar meta">−</button>
+            <span class="px-2 font-mono text-sm text-default min-w-[3ch] text-center" data-pg-goal-val>40</span>
+            <button type="button" data-pg-goal-inc class="px-2.5 py-1 text-muted hover:text-default" aria-label="Subir meta">+</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    {/* ── Actividad (mapa de calor) ──────────────────────────── */}
+    <div class="rounded-2xl border border-[var(--aw-color-border)] bg-[var(--aw-color-bg-surface)] p-5 sm:p-6 mb-8">
+      <div class="flex items-center gap-2 mb-4">
+        <Icon name="tabler:calendar-stats" class="w-4 h-4 text-[var(--aw-color-text-tertiary)]" />
+        <h2 class="text-sm font-semibold text-default">Actividad</h2>
+        <span class="text-[0.78rem] text-[var(--aw-color-text-tertiary)]" data-pg-activity-sum></span>
+      </div>
+      <div class="overflow-x-auto">
+        <div class="inline-grid grid-flow-col gap-[3px]" style="grid-template-rows: repeat(7, minmax(0, 1fr));" data-pg-heatmap aria-hidden="true"></div>
+      </div>
+      <div class="flex items-center gap-1.5 mt-3 text-[0.7rem] text-[var(--aw-color-text-tertiary)]">
+        <span>menos</span>
+        <span class="w-2.5 h-2.5 rounded-sm" style="background: var(--aw-color-border)"></span>
+        <span class="w-2.5 h-2.5 rounded-sm" style="background: rgba(6,182,212,0.35)"></span>
+        <span class="w-2.5 h-2.5 rounded-sm" style="background: rgba(6,182,212,0.65)"></span>
+        <span class="w-2.5 h-2.5 rounded-sm" style="background: rgba(6,182,212,1)"></span>
+        <span>más</span>
+      </div>
+    </div>
+
+    {/* ── Repaso pendiente (SRS) ─────────────────────────────── */}
+    <div class="rounded-2xl border border-[var(--turquoise-border)] bg-[var(--turquoise-bg)] p-5 sm:p-6 mb-8" data-pg-review-card hidden>
+      <div class="flex items-start justify-between gap-4 flex-wrap">
+        <div>
+          <div class="flex items-center gap-2 mb-1">
+            <Icon name="tabler:refresh" class="w-4 h-4 text-primary" />
+            <h2 class="text-sm font-semibold text-default">Repaso pendiente</h2>
+          </div>
+          <p class="text-[0.82rem] text-muted">
+            Tenés <span data-pg-review-count>0</span> lección(es) listas para repasar. Reforzar lo aprendido fija el conocimiento.
+          </p>
+          <ul class="mt-2 space-y-1 text-[0.82rem]" data-pg-review-list></ul>
+        </div>
+      </div>
+    </div>
+
+    {/* ── Progreso por curso ─────────────────────────────────── */}
+    <h2 class="font-heading text-xl font-semibold tracking-tight text-default mb-4">Tus cursos</h2>
+    <div class="grid sm:grid-cols-2 gap-4 mb-10" data-pg-courses></div>
+
+    {/* ── Logros ─────────────────────────────────────────────── */}
+    <div class="flex items-center justify-between mb-4">
+      <h2 class="font-heading text-xl font-semibold tracking-tight text-default">Logros</h2>
+      <span class="font-mono text-[0.78rem] text-[var(--aw-color-text-tertiary)]"><span data-pg-ach-count>0</span> / {ACHIEVEMENTS.length}</span>
+    </div>
+    <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 mb-10">
+      {
+        ACHIEVEMENTS.map((a) => (
+          <div
+            class="pg-ach rounded-xl border border-[var(--aw-color-border)] bg-[var(--aw-color-bg-surface)] p-4 text-center opacity-50 transition-opacity"
+            data-ach={a.id}
+          >
+            <Icon name={a.icon} class="w-7 h-7 mx-auto mb-2 text-[var(--aw-color-text-tertiary)] pg-ach-icon" />
+            <div class="text-[0.82rem] font-semibold text-default leading-tight">{a.title}</div>
+            <div class="text-[0.68rem] text-muted leading-snug mt-0.5">{a.desc}</div>
+          </div>
+        ))
+      }
+    </div>
+
+    {/* ── Escalera de niveles ────────────────────────────────── */}
+    <details class="rounded-2xl border border-[var(--aw-color-border)] bg-[var(--aw-color-bg-surface)] p-5 mb-8">
+      <summary class="cursor-pointer text-sm font-semibold text-default">Escalera de rangos</summary>
+      <div class="grid grid-cols-2 sm:grid-cols-5 gap-2 mt-4">
+        {
+          RANKS.map((rank, i) => (
+            <div class="pg-rank rounded-lg border border-[var(--aw-color-border)] px-3 py-2 text-center" data-rank-level={i + 1}>
+              <div class="font-mono text-[0.66rem] text-[var(--aw-color-text-tertiary)]">Nivel {i + 1}</div>
+              <div class="text-[0.82rem] text-default">{rank}</div>
+            </div>
+          ))
+        }
+      </div>
+    </details>
+
+    {/* ── Datos: exportar / importar / reiniciar ─────────────── */}
+    <details class="rounded-2xl border border-[var(--aw-color-border)] p-5">
+      <summary class="cursor-pointer text-sm font-semibold text-default">Tus datos</summary>
+      <p class="text-[0.82rem] text-muted mt-3 mb-4">
+        Tu progreso vive sólo en este navegador. Exportalo para guardarlo o llevarlo a otro dispositivo.
+      </p>
+      <div class="flex flex-wrap gap-2">
+        <button type="button" data-pg-export class="inline-flex items-center gap-2 text-sm rounded-lg border border-[var(--aw-color-border)] hover:border-[var(--aw-color-border-hover)] px-3 py-2 text-default transition-colors">
+          <Icon name="tabler:download" class="w-4 h-4" /> Exportar progreso
+        </button>
+        <label class="inline-flex items-center gap-2 text-sm rounded-lg border border-[var(--aw-color-border)] hover:border-[var(--aw-color-border-hover)] px-3 py-2 text-default transition-colors cursor-pointer">
+          <Icon name="tabler:arrow-up" class="w-4 h-4" /> Importar
+          <input type="file" accept="application/json" class="hidden" data-pg-import />
+        </label>
+        <button type="button" data-pg-reset class="inline-flex items-center gap-2 text-sm rounded-lg border border-red-500/40 text-red-500 hover:bg-red-500/5 px-3 py-2 transition-colors">
+          <Icon name="tabler:refresh" class="w-4 h-4" /> Reiniciar todo
+        </button>
+      </div>
+    </details>
+  </section>
+</Layout>
+
+<script>
+  import {
+    getLevelInfo,
+    getXp,
+    liveStreak,
+    getDone,
+    getProfile,
+    getActivity,
+    getDailyGoal,
+    setDailyGoal,
+    todayXp,
+    getAchievements,
+    getDueReviews,
+    exportProgress,
+    importProgress,
+    resetAll,
+    today,
+  } from '~/lib/store';
+
+  type Meta = { slug: string; title: string; icon: string; level: string; total: number };
+  type Data = { courses: Meta[]; lessons: Record<string, string> };
+
+  function setup() {
+    const dataEl = document.querySelector<HTMLScriptElement>('[data-pg-data]');
+    if (!dataEl?.textContent) return;
+    const data: Data = JSON.parse(dataEl.textContent);
+    const $ = (s: string) => document.querySelector<HTMLElement>(s);
+    const setText = (sel: string, text: string) => {
+      const el = document.querySelector(sel);
+      if (el) el.textContent = text;
+    };
+
+    // ── Encabezado / stats ────────────────────────────────────
+    const li = getLevelInfo();
+    const st = liveStreak();
+    const profile = getProfile();
+    const greet = $('[data-pg-greeting]');
+    if (greet) greet.textContent = profile.name ? `Hola, ${profile.name} 👋` : 'Hola 👋';
+    setText('[data-pg-level]', String(li.level));
+    setText('[data-pg-rank]', li.rank);
+    setText('[data-pg-xp]', String(getXp()));
+    setText('[data-pg-streak]', String(st.count));
+    setText('[data-pg-streak-best]', `récord: ${st.best} días`);
+    const lvBar = $('[data-pg-level-bar]');
+    if (lvBar) lvBar.style.width = `${li.pct}%`;
+    setText('[data-pg-level-xp]', `${li.current} / ${li.needed} XP`);
+
+    // ── Lecciones completadas + cursos ────────────────────────
+    let totalDone = 0;
+    const coursesWrap = $('[data-pg-courses]');
+    if (coursesWrap) coursesWrap.replaceChildren();
+    for (const c of data.courses) {
+      const done = getDone(c.slug).size;
+      totalDone += done;
+      const pct = c.total ? Math.round((done / c.total) * 100) : 0;
+      const complete = done >= c.total && c.total > 0;
+      const card = document.createElement('a');
+      card.href = `/${c.slug}`;
+      card.className =
+        'block rounded-2xl border border-[var(--aw-color-border)] bg-[var(--aw-color-bg-surface)] p-5 hover:border-[var(--aw-color-border-hover)] transition-colors';
+      const top = document.createElement('div');
+      top.className = 'flex items-center justify-between mb-3';
+      const title = document.createElement('div');
+      title.className = 'font-heading text-base font-semibold text-default';
+      title.textContent = c.title;
+      const tag = document.createElement('span');
+      tag.className = 'font-mono text-[0.66rem] uppercase tracking-wider text-[var(--aw-color-text-tertiary)]';
+      tag.textContent = c.level;
+      top.append(title, tag);
+      const bar = document.createElement('div');
+      bar.className = 'h-1.5 rounded-full bg-[var(--aw-color-border)] overflow-hidden';
+      const fill = document.createElement('div');
+      fill.className = 'h-full rounded-full bg-primary transition-[width] duration-700';
+      fill.style.width = `${pct}%`;
+      bar.appendChild(fill);
+      const meta = document.createElement('div');
+      meta.className = 'mt-2 flex items-center justify-between font-mono text-[0.7rem] text-[var(--aw-color-text-tertiary)]';
+      const left = document.createElement('span');
+      left.textContent = `${done}/${c.total} lecciones`;
+      const right = document.createElement('span');
+      if (complete) {
+        const link = document.createElement('a');
+        link.href = `/certificado/${c.slug}`;
+        link.className = 'text-primary hover:underline';
+        link.textContent = 'Ver certificado →';
+        right.appendChild(link);
+      } else {
+        right.textContent = `${pct}%`;
+      }
+      meta.append(left, right);
+      card.append(top, bar, meta);
+      coursesWrap?.appendChild(card);
+    }
+    setText('[data-pg-lessons]', String(totalDone));
+
+    // ── Meta diaria ───────────────────────────────────────────
+    function paintGoal() {
+      const goal = getDailyGoal();
+      const tx = todayXp();
+      const pct = Math.min(100, Math.round((tx / goal) * 100));
+      setText('[data-pg-goal-today]', String(tx));
+      setText('[data-pg-goal-target]', String(goal));
+      setText('[data-pg-goal-val]', String(goal));
+      setText('[data-pg-goal-pct]', `${pct}%`);
+      const ring = document.querySelector<SVGCircleElement>('[data-pg-goal-ring]');
+      if (ring) ring.style.strokeDashoffset = String(97.4 * (1 - pct / 100));
+    }
+    paintGoal();
+    $('[data-pg-goal-inc]')?.addEventListener('click', () => {
+      setDailyGoal(getDailyGoal() + 10);
+      paintGoal();
+    });
+    $('[data-pg-goal-dec]')?.addEventListener('click', () => {
+      setDailyGoal(Math.max(10, getDailyGoal() - 10));
+      paintGoal();
+    });
+
+    // ── Mapa de calor ─────────────────────────────────────────
+    const heat = $('[data-pg-heatmap]');
+    if (heat) {
+      heat.replaceChildren();
+      const act = getActivity();
+      const DAYS = 7 * 13; // ~3 meses
+      const start = new Date(today() + 'T00:00:00');
+      start.setDate(start.getDate() - (DAYS - 1));
+      let sum = 0;
+      let activeDays = 0;
+      for (let i = 0; i < DAYS; i++) {
+        const d = new Date(start);
+        d.setDate(start.getDate() + i);
+        const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+        const xp = act[key] || 0;
+        sum += xp;
+        if (xp > 0) activeDays++;
+        const cell = document.createElement('div');
+        cell.className = 'w-2.5 h-2.5 rounded-sm';
+        let bg = 'var(--aw-color-border)';
+        if (xp > 0 && xp < 20) bg = 'rgba(6,182,212,0.35)';
+        else if (xp >= 20 && xp < 50) bg = 'rgba(6,182,212,0.65)';
+        else if (xp >= 50) bg = 'rgba(6,182,212,1)';
+        cell.style.background = bg;
+        cell.title = `${key}: ${xp} XP`;
+        heat.appendChild(cell);
+      }
+      setText('[data-pg-activity-sum]', `${activeDays} días activos · ${sum} XP en 3 meses`);
+    }
+
+    // ── Repaso (SRS) ──────────────────────────────────────────
+    const due = getDueReviews();
+    if (due.length) {
+      const card = $('[data-pg-review-card]');
+      if (card) card.hidden = false;
+      setText('[data-pg-review-count]', String(due.length));
+      const list = $('[data-pg-review-list]');
+      if (list) {
+        list.replaceChildren();
+        due.slice(0, 5).forEach((r) => {
+          const li2 = document.createElement('li');
+          const a = document.createElement('a');
+          a.href = `/${r.id}`;
+          a.className = 'text-primary hover:underline';
+          a.textContent = data.lessons[r.id] || r.id;
+          li2.appendChild(a);
+          list.appendChild(li2);
+        });
+      }
+    }
+
+    // ── Logros ────────────────────────────────────────────────
+    const unlocked = getAchievements();
+    document.querySelectorAll<HTMLElement>('.pg-ach').forEach((el) => {
+      const id = el.dataset.ach;
+      if (id && unlocked.has(id)) {
+        el.classList.remove('opacity-50');
+        el.classList.add('border-[var(--turquoise-border)]');
+        const icon = el.querySelector('.pg-ach-icon');
+        icon?.classList.remove('text-[var(--aw-color-text-tertiary)]');
+        icon?.classList.add('text-primary');
+      }
+    });
+    setText('[data-pg-ach-count]', String(unlocked.size));
+
+    // ── Escalera: marcar nivel actual ─────────────────────────
+    document.querySelectorAll<HTMLElement>('.pg-rank').forEach((el) => {
+      if (Number(el.dataset.rankLevel) === li.level) {
+        el.classList.add('border-[var(--turquoise-border)]', 'bg-[var(--turquoise-bg)]');
+      }
+    });
+
+    // ── Datos ─────────────────────────────────────────────────
+    $('[data-pg-export]')?.addEventListener('click', () => {
+      const blob = new Blob([exportProgress()], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `programerso-progreso-${today()}.json`;
+      a.click();
+      URL.revokeObjectURL(url);
+    });
+    const importInput = document.querySelector<HTMLInputElement>('[data-pg-import]');
+    importInput?.addEventListener('change', () => {
+      const file = importInput.files?.[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = () => {
+        if (importProgress(String(reader.result))) location.reload();
+        else alert('No se pudo importar: el archivo no es un respaldo válido de Programerso.');
+      };
+      reader.readAsText(file);
+    });
+    $('[data-pg-reset]')?.addEventListener('click', () => {
+      if (confirm('¿Seguro? Esto borra todo tu progreso, XP, racha y logros en este navegador. No se puede deshacer.')) {
+        resetAll();
+        location.reload();
+      }
+    });
+  }
+
+  document.addEventListener('astro:page-load', setup);
+  if (document.readyState !== 'loading') setup();
+  else document.addEventListener('DOMContentLoaded', setup);
+</script>

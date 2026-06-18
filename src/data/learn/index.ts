@@ -1,12 +1,13 @@
 import type { Course, Lesson } from './types';
 import { javascriptCourse } from './javascript';
 import { pythonCourse } from './python';
+import { iaCourse } from './ia';
 import { glossary } from './glossary';
 
 export * from './types';
 export { glossary };
 
-export const courses: Course[] = [javascriptCourse, pythonCourse];
+export const courses: Course[] = [iaCourse, javascriptCourse, pythonCourse];
 
 export function getCourse(slug: string): Course | undefined {
   return courses.find((c) => c.slug === slug);

@@ -2,18 +2,29 @@
 import '~/styles/global.css';
 import { ClientRouter } from 'astro:transitions';
 import { Icon } from 'astro-icon/components';
+import CommandPalette from '~/components/CommandPalette.astro';
 
 export interface Props {
   title?: string;
   description?: string;
+  /** Oculta el chip de progreso (p. ej. en el certificado para imprimir). */
+  bare?: boolean;
 }
 
 const {
-  title = 'Programerso — Aprendé a programar desde cero',
-  description = 'Cursos interactivos de JavaScript y Python desde cero. Escribís código real con autocompletado guiado, cada término explicado y ejecución en tu navegador.',
+  title = 'Programerso — Aprendé a programar en la era de la IA',
+  description = 'Cursos interactivos para aprender a programar desde cero y a trabajar con IA. Escribís y ejecutás código real, predecís, depurás y verificás — con XP, rachas y certificados. Sin instalar nada.',
+  bare = false,
 } = Astro.props;
 
 const fullTitle = title.includes('Programerso') ? title : `${title} · Programerso`;
+
+const nav = [
+  { href: '/', label: 'Aprender', icon: 'tabler:books' },
+  { href: '/progreso', label: 'Progreso', icon: 'tabler:chart-bar' },
+  { href: '/glosario', label: 'Glosario', icon: 'tabler:bulb' },
+  { href: '/playground', label: 'Playground', icon: 'tabler:terminal' },
+];
 ---
 
 <!doctype html>
@@ -24,10 +35,18 @@ const fullTitle = title.includes('Programerso') ? title : `${title} · Programer
     <title>{fullTitle}</title>
     <meta name="description" content={description} />
     <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
-    <meta name="theme-color" content="#000000" />
+    <link rel="manifest" href="/manifest.webmanifest" />
+    <meta name="theme-color" content="#06b6d4" />
+    <meta name="color-scheme" content="dark light" />
+    <link rel="canonical" href={Astro.url.href} />
+    <meta property="og:site_name" content="Programerso" />
     <meta property="og:title" content={fullTitle} />
     <meta property="og:description" content={description} />
     <meta property="og:type" content="website" />
+    <meta property="og:url" content={Astro.url.href} />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content={fullTitle} />
+    <meta name="twitter:description" content={description} />
     {/* Evita el flash de tema: se aplica antes de pintar */}
     <script is:inline>
       (function () {
@@ -43,48 +62,197 @@ const fullTitle = title.includes('Programerso') ? title : `${title} · Programer
     <ClientRouter />
   </head>
   <body>
-    <header class="sticky top-0 z-40 border-b border-[var(--aw-color-border)] bg-[var(--aw-color-bg-page)]/80 backdrop-blur">
-      <div class="max-w-6xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
-        <a href="/" class="flex items-center gap-2 font-heading font-semibold tracking-tight text-default">
+    <header
+      class="sticky top-0 z-40 border-b border-[var(--aw-color-border)] bg-[var(--aw-color-bg-page)]/80 backdrop-blur"
+    >
+      <div class="max-w-6xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between gap-2">
+        <a href="/" class="flex items-center gap-2 font-heading font-semibold tracking-tight text-default shrink-0">
           <span class="font-mono text-primary">{'</>'}</span>
-          Programerso
+          <span class="hidden xs:inline sm:inline">Programerso</span>
         </a>
-        <nav class="flex items-center gap-1 sm:gap-2">
-          <a
-            href="/javascript"
-            class="px-3 py-1.5 rounded-lg text-sm text-muted hover:text-default hover:bg-[var(--aw-color-bg-surface)] transition-colors"
-            >JavaScript</a
+
+        <nav class="hidden md:flex items-center gap-1" aria-label="Principal">
+          {
+            nav.map((item) => (
+              <a
+                href={item.href}
+                class="px-3 py-1.5 rounded-lg text-sm text-muted hover:text-default hover:bg-[var(--aw-color-bg-surface)] transition-colors"
+              >
+                {item.label}
+              </a>
+            ))
+          }
+        </nav>
+
+        <div class="flex items-center gap-1.5 sm:gap-2">
+          <button
+            type="button"
+            data-cmdk-open
+            aria-label="Buscar (⌘K)"
+            class="flex items-center gap-2 px-2.5 sm:px-3 py-1.5 rounded-lg text-sm text-muted hover:text-default border border-[var(--aw-color-border)] hover:border-[var(--aw-color-border-hover)] transition-colors"
           >
-          <a
-            href="/python"
-            class="px-3 py-1.5 rounded-lg text-sm text-muted hover:text-default hover:bg-[var(--aw-color-bg-surface)] transition-colors"
-            >Python</a
-          >
+            <Icon name="tabler:search" class="w-4 h-4" />
+            <span class="hidden lg:inline text-[0.8rem]">Buscar</span>
+            <kbd class="hidden lg:inline font-mono text-[0.62rem] text-[var(--aw-color-text-tertiary)] border border-[var(--aw-color-border)] rounded px-1">⌘K</kbd>
+          </button>
+
+          {
+            !bare && (
+              <a
+                href="/progreso"
+                data-stats-chip
+                title="Tu progreso"
+                class="flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-sm border border-[var(--aw-color-border)] hover:border-[var(--turquoise-border)] transition-colors"
+              >
+                <span class="flex items-center gap-1 text-primary font-mono text-[0.72rem]" data-stats-level>
+                  Lv 1
+                </span>
+                <span class="w-px h-3.5 bg-[var(--aw-color-border)]" />
+                <span class="flex items-center gap-0.5 font-mono text-[0.72rem] text-[var(--aw-color-text-tertiary)]" data-stats-streak>
+                  <Icon name="tabler:flame" class="w-3.5 h-3.5" />0
+                </span>
+              </a>
+            )
+          }
+
           <button
             type="button"
             data-theme-toggle
             aria-label="Cambiar tema"
-            class="ml-1 grid place-items-center w-9 h-9 rounded-lg text-muted hover:text-default hover:bg-[var(--aw-color-bg-surface)] transition-colors"
+            class="grid place-items-center w-9 h-9 rounded-lg text-muted hover:text-default hover:bg-[var(--aw-color-bg-surface)] transition-colors"
           >
             <Icon name="tabler:sun" class="w-[18px] h-[18px] hidden dark:block" />
             <Icon name="tabler:moon" class="w-[18px] h-[18px] block dark:hidden" />
           </button>
-        </nav>
+        </div>
       </div>
+
+      {/* Nav móvil */}
+      <nav class="md:hidden flex items-center gap-1 px-3 pb-2 overflow-x-auto" aria-label="Principal (móvil)">
+        {
+          nav.map((item) => (
+            <a
+              href={item.href}
+              class="shrink-0 px-3 py-1 rounded-lg text-[0.8rem] text-muted hover:text-default hover:bg-[var(--aw-color-bg-surface)] transition-colors"
+            >
+              {item.label}
+            </a>
+          ))
+        }
+      </nav>
     </header>
 
     <main>
       <slot />
     </main>
 
-    <footer class="border-t border-[var(--aw-color-border)] mt-16">
+    <footer class="border-t border-[var(--aw-color-border)] mt-16 print:hidden">
       <div
         class="max-w-6xl mx-auto px-4 sm:px-6 py-8 flex flex-col sm:flex-row items-center justify-between gap-3 text-sm text-[var(--aw-color-text-tertiary)]"
       >
         <span class="font-mono">Programerso</span>
-        <span>Aprendé programando código real, en tu navegador.</span>
+        <nav class="flex items-center gap-4" aria-label="Pie">
+          <a href="/" class="hover:text-default transition-colors">Cursos</a>
+          <a href="/progreso" class="hover:text-default transition-colors">Progreso</a>
+          <a href="/glosario" class="hover:text-default transition-colors">Glosario</a>
+          <a href="/playground" class="hover:text-default transition-colors">Playground</a>
+        </nav>
+        <span>Aprendé programando de verdad, en tu navegador.</span>
       </div>
     </footer>
+
+    {/* Buscador / paleta de comandos */}
+    <CommandPalette />
+
+    {/* Capa de celebración: toasts + confetti */}
+    <div class="pg-toasts" data-pg-toasts aria-live="polite"></div>
+    <canvas class="pg-confetti" data-pg-confetti aria-hidden="true"></canvas>
+
+    <style is:global>
+      .pg-toasts {
+        position: fixed;
+        top: 4.8rem;
+        right: 1rem;
+        z-index: 90;
+        display: flex;
+        flex-direction: column;
+        gap: 0.5rem;
+        pointer-events: none;
+        max-width: min(92vw, 320px);
+      }
+      .pg-toast {
+        display: flex;
+        align-items: center;
+        gap: 0.6rem;
+        padding: 0.65rem 0.85rem;
+        border-radius: 11px;
+        background: var(--aw-color-bg-page);
+        border: 1px solid var(--aw-color-border-hover);
+        box-shadow: 0 12px 40px rgba(0, 0, 0, 0.3);
+        animation: pg-toast-in 0.32s cubic-bezier(0.16, 1, 0.3, 1) both;
+      }
+      .pg-toast.is-out {
+        animation: pg-toast-out 0.3s ease forwards;
+      }
+      .pg-toast-emoji {
+        font-size: 1.2rem;
+        line-height: 1;
+      }
+      .pg-toast-body {
+        min-width: 0;
+      }
+      .pg-toast-title {
+        font-size: 0.85rem;
+        font-weight: 600;
+        color: var(--aw-color-text-default);
+      }
+      .pg-toast-sub {
+        font-size: 0.74rem;
+        color: var(--aw-color-text-muted);
+      }
+      .pg-toast.is-xp {
+        padding: 0.4rem 0.7rem;
+      }
+      .pg-toast.is-xp .pg-toast-title {
+        color: var(--aw-color-primary);
+        font-family: var(--font-geist-mono);
+        font-size: 0.8rem;
+      }
+      .pg-confetti {
+        position: fixed;
+        inset: 0;
+        width: 100%;
+        height: 100%;
+        pointer-events: none;
+        z-index: 95;
+      }
+      @keyframes pg-toast-in {
+        from {
+          opacity: 0;
+          transform: translateX(20px);
+        }
+      }
+      @keyframes pg-toast-out {
+        to {
+          opacity: 0;
+          transform: translateX(20px);
+        }
+      }
+      [data-stats-chip].is-bump {
+        animation: pg-chip-bump 0.4s ease;
+      }
+      @keyframes pg-chip-bump {
+        30% {
+          transform: scale(1.12);
+        }
+      }
+      @media (prefers-reduced-motion: reduce) {
+        .pg-toast,
+        [data-stats-chip].is-bump {
+          animation: none !important;
+        }
+      }
+    </style>
 
     <script>
       // Toggle de tema, idempotente y compatible con View Transitions.
@@ -101,7 +269,6 @@ const fullTitle = title.includes('Programerso') ? title : `${title} · Programer
           }
         });
       }
-      // Reaplica el tema tras cada navegación SPA.
       function applyTheme() {
         try {
           const stored = localStorage.getItem('theme');
@@ -115,6 +282,178 @@ const fullTitle = title.includes('Programerso') ? title : `${title} · Programer
       document.addEventListener('astro:page-load', setupThemeToggle);
       if (document.readyState !== 'loading') setupThemeToggle();
       else document.addEventListener('DOMContentLoaded', setupThemeToggle);
+
+      // Registro del service worker (PWA / offline).
+      if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+          navigator.serviceWorker.register('/sw.js').catch(() => {});
+        });
+      }
+    </script>
+
+    <script>
+      // HUD de progreso (chip del header) + celebración (toasts + confetti).
+      import { getLevelInfo, liveStreak, ACHIEVEMENTS, getSettings } from '~/lib/store';
+
+      function paintChip() {
+        const chip = document.querySelector<HTMLElement>('[data-stats-chip]');
+        if (!chip) return;
+        const li = getLevelInfo();
+        const st = liveStreak();
+        const levelEl = chip.querySelector<HTMLElement>('[data-stats-level]');
+        const streakEl = chip.querySelector<HTMLElement>('[data-stats-streak]');
+        if (levelEl) levelEl.textContent = `Lv ${li.level}`;
+        if (streakEl) {
+          // conserva el icono (primer hijo) y actualiza el número
+          const last = streakEl.childNodes[streakEl.childNodes.length - 1];
+          if (last && last.nodeType === Node.TEXT_NODE) last.textContent = String(st.count);
+          else streakEl.append(String(st.count));
+        }
+        chip.title = `Nivel ${li.level} · ${li.rank} · ${li.xp} XP · racha ${st.count}`;
+      }
+
+      function bumpChip() {
+        const chip = document.querySelector<HTMLElement>('[data-stats-chip]');
+        if (!chip) return;
+        chip.classList.remove('is-bump');
+        void chip.offsetWidth;
+        chip.classList.add('is-bump');
+      }
+
+      // ── Toasts ──────────────────────────────────────────────
+      let toastWrap: HTMLElement | null = null;
+      function toast(emoji: string, title: string, sub = '', cls = '', ms = 3200) {
+        toastWrap = toastWrap || document.querySelector<HTMLElement>('[data-pg-toasts]');
+        if (!toastWrap) return;
+        const el = document.createElement('div');
+        el.className = 'pg-toast ' + cls;
+        const em = document.createElement('span');
+        em.className = 'pg-toast-emoji';
+        em.textContent = emoji;
+        const body = document.createElement('div');
+        body.className = 'pg-toast-body';
+        const t = document.createElement('div');
+        t.className = 'pg-toast-title';
+        t.textContent = title;
+        body.appendChild(t);
+        if (sub) {
+          const s = document.createElement('div');
+          s.className = 'pg-toast-sub';
+          s.textContent = sub;
+          body.appendChild(s);
+        }
+        el.append(em, body);
+        toastWrap.appendChild(el);
+        setTimeout(() => {
+          el.classList.add('is-out');
+          setTimeout(() => el.remove(), 320);
+        }, ms);
+      }
+
+      // Agrupa pequeñas ganancias de XP para no saturar.
+      let xpAccum = 0;
+      let xpTimer: number | null = null;
+      function queueXp(n: number) {
+        xpAccum += n;
+        bumpChip();
+        if (xpTimer) clearTimeout(xpTimer);
+        xpTimer = window.setTimeout(() => {
+          toast('⚡', `+${xpAccum} XP`, '', 'is-xp', 1800);
+          xpAccum = 0;
+          xpTimer = null;
+        }, 650);
+      }
+
+      // ── Confetti (canvas, sin dependencias) ─────────────────
+      function confetti() {
+        let reduced = false;
+        try {
+          reduced =
+            window.matchMedia('(prefers-reduced-motion: reduce)').matches || getSettings().reducedConfetti;
+        } catch {
+          /* noop */
+        }
+        if (reduced) return;
+        const canvas = document.querySelector<HTMLCanvasElement>('[data-pg-confetti]');
+        if (!canvas) return;
+        const maybeCtx = canvas.getContext('2d');
+        if (!maybeCtx) return;
+        const cx = maybeCtx; // narrowed, no-null para los closures de abajo
+        const dpr = Math.min(window.devicePixelRatio || 1, 2);
+        canvas.width = window.innerWidth * dpr;
+        canvas.height = window.innerHeight * dpr;
+        cx.scale(dpr, dpr);
+        const W = window.innerWidth;
+        const H = window.innerHeight;
+        const colors = ['#06b6d4', '#0891b2', '#22d3ee', '#a5f3fc', '#ededed'];
+        const N = 120;
+        const parts = Array.from({ length: N }, () => ({
+          x: W / 2 + (Math.random() - 0.5) * 80,
+          y: H / 3,
+          vx: (Math.random() - 0.5) * 9,
+          vy: Math.random() * -11 - 4,
+          g: 0.32 + Math.random() * 0.12,
+          size: 4 + Math.random() * 5,
+          rot: Math.random() * Math.PI,
+          vr: (Math.random() - 0.5) * 0.3,
+          color: colors[(Math.random() * colors.length) | 0],
+          life: 0,
+        }));
+        let frame = 0;
+        function tick() {
+          frame++;
+          cx.clearRect(0, 0, W, H);
+          let alive = false;
+          for (const p of parts) {
+            p.vy += p.g;
+            p.x += p.vx;
+            p.y += p.vy;
+            p.rot += p.vr;
+            p.life++;
+            if (p.y < H + 20) alive = true;
+            cx.save();
+            cx.translate(p.x, p.y);
+            cx.rotate(p.rot);
+            cx.globalAlpha = Math.max(0, 1 - frame / 120);
+            cx.fillStyle = p.color;
+            cx.fillRect(-p.size / 2, -p.size / 2, p.size, p.size * 0.6);
+            cx.restore();
+          }
+          if (alive && frame < 140) requestAnimationFrame(tick);
+          else cx.clearRect(0, 0, W, H);
+        }
+        requestAnimationFrame(tick);
+      }
+
+      // ── Bus de eventos ──────────────────────────────────────
+      function onUpdate(e: Event) {
+        const detail = (e as CustomEvent).detail || {};
+        if (detail.kind === 'xp') {
+          paintChip();
+          if (typeof detail.amount === 'number') queueXp(detail.amount);
+          if (detail.leveledUp) {
+            const li = getLevelInfo();
+            toast('🎉', `¡Nivel ${li.level}!`, `Ahora sos ${li.rank}`, '', 4200);
+            confetti();
+          }
+        } else if (detail.kind === 'achievement') {
+          const a = ACHIEVEMENTS.find((x) => x.id === detail.id);
+          toast('🏆', 'Logro desbloqueado', a ? a.title : '¡Bien!', '', 4200);
+          confetti();
+          paintChip();
+        } else if (detail.kind === 'streak' || detail.kind === 'lesson-done') {
+          paintChip();
+        }
+      }
+
+      function setup() {
+        paintChip();
+        window.removeEventListener('pg:update', onUpdate);
+        window.addEventListener('pg:update', onUpdate);
+      }
+      document.addEventListener('astro:page-load', setup);
+      if (document.readyState !== 'loading') setup();
+      else document.addEventListener('DOMContentLoaded', setup);
     </script>
   </body>
 </html>

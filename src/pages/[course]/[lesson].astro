@@ -48,7 +48,13 @@ const lessonIndex = all.findIndex((l) => l.slug === lesson.slug);
       <div class="ct-intro text-base text-muted leading-relaxed" set:html={lesson.intro} />
     </header>
 
-    <CodeTutor lesson={lesson} language={course.language} runtimeLabel={course.runtimeLabel} courseSlug={course.slug} />
+    <CodeTutor
+      lesson={lesson}
+      language={course.language}
+      runtimeLabel={course.runtimeLabel}
+      courseSlug={course.slug}
+      nextHref={next ? `/${course.slug}/${next.slug}` : `/${course.slug}`}
+    />
 
     <p class="mt-4 flex flex-wrap items-center gap-2 text-[0.78rem] text-[var(--aw-color-text-tertiary)]">
       <Icon name="tabler:keyboard" class="w-4 h-4" />

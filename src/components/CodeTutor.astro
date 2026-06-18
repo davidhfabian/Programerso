@@ -1,8 +1,9 @@
 ---
-// Editor-tutor interactivo. Guía al alumno paso a paso: muestra qué escribir con
-// autocompletado fantasma (ghost text + Tab), explica términos del glosario en
-// tooltips, valida cada línea y ejecuta el programa acumulado de verdad en el
-// navegador (JS nativo / Python con Pyodide). El progreso se guarda en localStorage.
+// Editor-tutor interactivo. Guía al alumno paso a paso con varios TIPOS de
+// ejercicio: tipeo guiado (ghost text + Tab), tarjeta conceptual, quiz de
+// opción múltiple, predecir la salida, arreglar un bug y resolver un reto
+// abierto validado por su salida. Ejecuta código real en el navegador
+// (JS nativo / Python con Pyodide). Progreso, XP y rachas en localStorage.
 import type { Lesson, LearnLanguage } from '~/data/learn';
 import { glossary as glossaryAll, lessonGlossary } from '~/data/learn';
 
@@ -11,12 +12,13 @@ export interface Props {
   language: LearnLanguage;
   runtimeLabel: string;
   courseSlug: string;
+  nextHref?: string;
 }
 
-const { lesson, language, runtimeLabel, courseSlug } = Astro.props;
+const { lesson, language, runtimeLabel, courseSlug, nextHref } = Astro.props;
 
 // Renderiza [[clave]] o [[clave|texto]] como un botón de glosario.
-function renderExplanation(text: string): string {
+function renderTerms(text: string): string {
   return text.replace(/\[\[([^\]|]+)(?:\|([^\]]*))?\]\]/g, (_m, rawKey: string, display?: string) => {
     const key = rawKey.trim().toLowerCase();
     const label = (display ?? glossaryAll[key]?.term ?? rawKey).trim();
@@ -24,25 +26,51 @@ function renderExplanation(text: string): string {
   });
 }
 
+const runnable = language === 'javascript' || language === 'python';
+
 const payload = {
   language,
+  runnable,
   runtimeLabel,
   courseSlug,
   lessonSlug: lesson.slug,
+  tags: lesson.tags ?? [],
   glossary: lessonGlossary(lesson),
   steps: lesson.steps.map((s) => ({
+    kind: s.kind ?? 'type',
     instruction: s.instruction,
-    explanationHtml: renderExplanation(s.explanation),
-    solution: s.solution,
+    explanationHtml: renderTerms(s.explanation),
     hint: s.hint ?? '',
+    revealHtml: s.reveal ? renderTerms(s.reveal) : '',
+    solution: s.solution ?? '',
+    question: s.question ?? '',
+    choices: (s.choices ?? []).map((c) => ({
+      textHtml: renderTerms(c.text),
+      correct: !!c.correct,
+      feedbackHtml: c.feedback ? renderTerms(c.feedback) : '',
+    })),
+    code: s.code ?? '',
+    expectedOutput: s.expectedOutput ?? '',
+    buggyCode: s.buggyCode ?? '',
+    starter: s.starter ?? '',
+    checks: s.checks ?? [],
+    referenceSolution: s.referenceSolution ?? '',
   })),
 };
 
 const json = JSON.stringify(payload).replace(/</g, '\\u003c');
 const stepCount = lesson.steps.length;
+const fileExt = language === 'python' ? 'py' : language === 'javascript' ? 'js' : 'txt';
 ---
 
-<section class="ct" data-ct data-course={courseSlug} data-lesson={lesson.slug} aria-label="Editor interactivo">
+<section
+  class="ct"
+  data-ct
+  data-course={courseSlug}
+  data-lesson={lesson.slug}
+  data-next-href={nextHref}
+  aria-label="Editor interactivo"
+>
   <script type="application/json" data-ct-data is:inline set:html={json} />
 
   <div class="ct-grid">
@@ -51,6 +79,7 @@ const stepCount = lesson.steps.length;
       <div class="ct-progress">
         <div class="ct-progress-meta">
           <span class="ct-progress-label">Paso <span data-ct-step-num>1</span> / {stepCount}</span>
+          <span class="ct-kind-badge" data-ct-kind-badge hidden></span>
           <span class="ct-progress-pct" data-ct-pct>0%</span>
         </div>
         <div class="ct-progress-track" role="progressbar" aria-label="Progreso de la lección">
@@ -61,17 +90,37 @@ const stepCount = lesson.steps.length;
       <p class="ct-instruction" data-ct-instruction></p>
       <div class="ct-explanation" data-ct-explanation></div>
 
+      {/* Sugerencia de tipeo (kind: type) */}
       <div class="ct-suggest" data-ct-suggest hidden>
         <span class="ct-suggest-label">Siguiente:</span>
         <button type="button" class="ct-suggest-chip" data-ct-suggest-chip></button>
         <span class="ct-suggest-tab">o <kbd>Tab</kbd></span>
       </div>
 
+      {/* Opciones (kind: quiz / predict-mc) */}
+      <div class="ct-choices" data-ct-choices hidden role="group" aria-label="Opciones"></div>
+
+      {/* Entrada de predicción de texto (kind: predict libre) */}
+      <div class="ct-predict" data-ct-predict hidden>
+        <label class="ct-predict-label" for={`ct-predict-${lesson.slug}`}>Escribí la salida exacta:</label>
+        <textarea
+          id={`ct-predict-${lesson.slug}`}
+          class="ct-predict-input font-mono"
+          data-ct-predict-input
+          rows="2"
+          spellcheck="false"
+          placeholder="¿Qué imprime el programa?"></textarea>
+      </div>
+
+      {/* Retroalimentación (quiz/predict resueltos) */}
+      <div class="ct-feedback" data-ct-feedback hidden></div>
+
       <div class="ct-hint" data-ct-hint hidden></div>
 
       <div class="ct-actions">
         <button type="button" class="ct-btn ct-btn-ghost" data-ct-hint-btn>Pista</button>
-        <button type="button" class="ct-btn ct-btn-primary" data-ct-check>Comprobar</button>
+        <button type="button" class="ct-btn ct-btn-ghost" data-ct-reveal-btn hidden>Ver solución</button>
+        <button type="button" class="ct-btn ct-btn-primary" data-ct-primary>Comprobar</button>
       </div>
     </aside>
 
@@ -79,7 +128,7 @@ const stepCount = lesson.steps.length;
     <div class="ct-editor">
       <div class="ct-toolbar">
         <span class="ct-dots" aria-hidden="true"><span></span><span></span><span></span></span>
-        <span class="ct-runtime font-mono">{runtimeLabel} · lección.{language === 'python' ? 'py' : 'js'}</span>
+        <span class="ct-runtime font-mono" data-ct-runtime>{runtimeLabel} · lección.{fileExt}</span>
         <button type="button" class="ct-reset" data-ct-reset title="Reiniciar lección" aria-label="Reiniciar lección">
           ↺
         </button>
@@ -87,6 +136,8 @@ const stepCount = lesson.steps.length;
 
       <div class="ct-code" data-ct-code>
         <div class="ct-accepted font-mono" data-ct-accepted></div>
+
+        {/* Input activo (kind: type) */}
         <div class="ct-active font-mono" data-ct-active-wrap>
           <span class="ct-gutter" aria-hidden="true">›</span>
           <div class="ct-field">
@@ -103,6 +154,21 @@ const stepCount = lesson.steps.length;
             />
           </div>
         </div>
+
+        {/* Editor libre (kind: fix / challenge) */}
+        <div class="ct-free" data-ct-free hidden>
+          <textarea
+            class="ct-free-input font-mono"
+            data-ct-free-input
+            spellcheck="false"
+            autocomplete="off"
+            autocapitalize="off"
+            autocorrect="off"
+            aria-label="Editá el código"></textarea>
+        </div>
+
+        {/* Código en sólo lectura (kind: predict / info) */}
+        <pre class="ct-readonly font-mono" data-ct-readonly hidden></pre>
       </div>
 
       <div class="ct-console">
@@ -111,6 +177,7 @@ const stepCount = lesson.steps.length;
           <button type="button" class="ct-run" data-ct-run hidden>▶ Ejecutar</button>
         </div>
         <pre class="ct-console-out font-mono" data-ct-out aria-live="polite"></pre>
+        <ul class="ct-checks" data-ct-checks hidden></ul>
       </div>
     </div>
   </div>
@@ -118,10 +185,11 @@ const stepCount = lesson.steps.length;
   {/* ── Estado completado ──────────────────────────────────────── */}
   <div class="ct-done" data-ct-done hidden>
     <span class="ct-done-check" aria-hidden="true">✓</span>
-    <div>
+    <div class="ct-done-text">
       <p class="ct-done-title">¡Lección completada!</p>
-      <p class="ct-done-sub" data-ct-done-sub>Ya podés editar el programa libremente y ejecutarlo.</p>
+      <p class="ct-done-sub" data-ct-done-sub>Sumaste XP. Seguí con la próxima lección cuando quieras.</p>
     </div>
+    <a class="ct-done-next" data-ct-done-next hidden href="#">Siguiente lección →</a>
   </div>
 
   {/* Tooltip de glosario compartido */}
@@ -169,12 +237,26 @@ const stepCount = lesson.steps.length;
   .ct-progress-meta {
     display: flex;
     justify-content: space-between;
-    align-items: baseline;
+    align-items: center;
+    gap: 0.5rem;
     font-family: var(--font-geist-mono);
     font-size: 0.72rem;
     letter-spacing: 0.02em;
     color: var(--aw-color-text-tertiary);
     margin-bottom: 0.45rem;
+  }
+  .ct-progress-label {
+    flex: 1;
+  }
+  .ct-kind-badge {
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    font-size: 0.62rem;
+    padding: 0.1rem 0.42rem;
+    border-radius: 999px;
+    border: 1px solid var(--turquoise-border);
+    background: var(--turquoise-bg);
+    color: var(--ct-accent);
   }
   .ct-progress-pct {
     font-variant-numeric: tabular-nums;
@@ -206,7 +288,9 @@ const stepCount = lesson.steps.length;
     line-height: 1.6;
     color: var(--aw-color-text-muted);
   }
-  .ct-explanation :global(code) {
+  .ct-explanation :global(code),
+  .ct-feedback :global(code),
+  .ct-choices :global(code) {
     font-family: var(--font-geist-mono);
     font-size: 0.82em;
     padding: 0.08em 0.35em;
@@ -221,7 +305,9 @@ const stepCount = lesson.steps.length;
   }
 
   /* Término de glosario */
-  .ct-explanation :global(.ct-term) {
+  .ct-explanation :global(.ct-term),
+  .ct-feedback :global(.ct-term),
+  .ct-choices :global(.ct-term) {
     font: inherit;
     color: var(--aw-color-text-default);
     border: none;
@@ -273,6 +359,120 @@ const stepCount = lesson.steps.length;
     padding: 0.05rem 0.3rem;
   }
 
+  /* ── Opciones (quiz / predict) ────────────────────────────── */
+  .ct-choices {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    margin-top: 1.1rem;
+  }
+  .ct-choice {
+    text-align: left;
+    font-size: 0.88rem;
+    line-height: 1.45;
+    color: var(--aw-color-text-default);
+    background: var(--aw-color-bg-page);
+    border: 1px solid var(--aw-color-border);
+    border-radius: 10px;
+    padding: 0.7rem 0.85rem;
+    cursor: pointer;
+    transition: all 0.15s ease;
+    display: flex;
+    align-items: flex-start;
+    gap: 0.6rem;
+  }
+  .ct-choice:hover:not(:disabled) {
+    border-color: var(--aw-color-border-hover);
+    transform: translateX(2px);
+  }
+  .ct-choice-key {
+    flex: 0 0 auto;
+    width: 1.4rem;
+    height: 1.4rem;
+    display: grid;
+    place-items: center;
+    border-radius: 6px;
+    border: 1px solid var(--aw-color-border);
+    font-family: var(--font-geist-mono);
+    font-size: 0.72rem;
+    color: var(--aw-color-text-tertiary);
+  }
+  .ct-choice.is-correct {
+    border-color: var(--turquoise-border);
+    background: var(--turquoise-bg);
+  }
+  .ct-choice.is-correct .ct-choice-key {
+    border-color: var(--turquoise-border);
+    color: var(--ct-accent);
+  }
+  .ct-choice.is-wrong {
+    border-color: rgba(239, 68, 68, 0.5);
+    background: rgba(239, 68, 68, 0.06);
+  }
+  .ct-choice.is-wrong .ct-choice-key {
+    border-color: rgba(239, 68, 68, 0.5);
+    color: #ef4444;
+  }
+  .ct-choice:disabled {
+    cursor: default;
+  }
+  .ct-choice :global(pre) {
+    margin: 0;
+    white-space: pre-wrap;
+  }
+
+  /* ── Predicción de texto ──────────────────────────────────── */
+  .ct-predict {
+    margin-top: 1.1rem;
+  }
+  .ct-predict-label {
+    display: block;
+    font-size: 0.76rem;
+    color: var(--aw-color-text-tertiary);
+    margin-bottom: 0.4rem;
+  }
+  .ct-predict-input {
+    width: 100%;
+    resize: vertical;
+    background: var(--aw-color-bg-page);
+    border: 1px solid var(--aw-color-border);
+    border-radius: 8px;
+    padding: 0.55rem 0.7rem;
+    color: var(--aw-color-text-default);
+    font-size: 0.85rem;
+    line-height: 1.5;
+    outline: none;
+  }
+  .ct-predict-input:focus {
+    border-color: var(--ct-accent);
+  }
+
+  /* ── Retroalimentación ────────────────────────────────────── */
+  .ct-feedback {
+    margin-top: 1rem;
+    font-size: 0.85rem;
+    line-height: 1.55;
+    padding: 0.7rem 0.85rem;
+    border-radius: 8px;
+    border-left: 2px solid var(--aw-color-border-hover);
+    background: var(--aw-color-bg-page);
+    color: var(--aw-color-text-muted);
+  }
+  .ct-feedback.is-ok {
+    border-left-color: var(--turquoise-border);
+    background: var(--turquoise-bg);
+  }
+  .ct-feedback.is-bad {
+    border-left-color: rgba(239, 68, 68, 0.5);
+    background: rgba(239, 68, 68, 0.06);
+  }
+  .ct-feedback-title {
+    font-weight: 600;
+    color: var(--aw-color-text-default);
+    display: block;
+    margin-bottom: 0.2rem;
+  }
+
   .ct-hint {
     margin-top: 0.9rem;
     font-size: 0.83rem;
@@ -288,6 +488,7 @@ const stepCount = lesson.steps.length;
     display: flex;
     gap: 0.55rem;
     margin-top: 1.2rem;
+    flex-wrap: wrap;
   }
   .ct-btn {
     font-family: var(--font-geist-sans);
@@ -298,6 +499,10 @@ const stepCount = lesson.steps.length;
     cursor: pointer;
     border: 1px solid transparent;
     transition: all 0.18s ease;
+  }
+  .ct-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
   }
   .ct-btn-ghost {
     background: transparent;
@@ -458,6 +663,36 @@ const stepCount = lesson.steps.length;
     }
   }
 
+  /* Editor libre */
+  .ct-free {
+    padding: 0 0.6rem 0 0.9rem;
+  }
+  .ct-free-input {
+    width: 100%;
+    min-height: 9rem;
+    resize: vertical;
+    background: transparent;
+    border: none;
+    outline: none;
+    color: var(--aw-color-text-default);
+    font-size: 0.86rem;
+    line-height: 1.75;
+    white-space: pre;
+    overflow-wrap: normal;
+    tab-size: 2;
+  }
+
+  /* Código en sólo lectura */
+  .ct-readonly {
+    margin: 0;
+    padding: 0 0.9rem;
+    color: var(--aw-color-text-default);
+    font-size: 0.86rem;
+    line-height: 1.75;
+    white-space: pre;
+    overflow-x: auto;
+  }
+
   /* ── Consola ──────────────────────────────────────────────── */
   .ct-console {
     border-top: 1px solid var(--aw-color-border);
@@ -509,6 +744,42 @@ const stepCount = lesson.steps.length;
     color: var(--aw-color-text-tertiary);
     font-style: italic;
   }
+  .ct-checks {
+    list-style: none;
+    margin: 0;
+    padding: 0 0.9rem 0.8rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.3rem;
+  }
+  .ct-check {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.78rem;
+    color: var(--aw-color-text-muted);
+  }
+  .ct-check-mark {
+    flex: 0 0 auto;
+    width: 1.05rem;
+    height: 1.05rem;
+    display: grid;
+    place-items: center;
+    border-radius: 50%;
+    border: 1px solid var(--aw-color-border-hover);
+    font-size: 0.62rem;
+  }
+  .ct-check.is-pass {
+    color: var(--aw-color-text-default);
+  }
+  .ct-check.is-pass .ct-check-mark {
+    border-color: var(--turquoise-border);
+    color: var(--ct-accent);
+    background: var(--turquoise-bg);
+  }
+  .ct-check.is-fail .ct-check-mark {
+    color: var(--aw-color-text-tertiary);
+  }
 
   /* ── Completado ───────────────────────────────────────────── */
   .ct-done {
@@ -531,6 +802,9 @@ const stepCount = lesson.steps.length;
     color: var(--ct-accent);
     font-size: 0.95rem;
   }
+  .ct-done-text {
+    flex: 1;
+  }
   .ct-done-title {
     font-weight: 600;
     color: var(--aw-color-text-default);
@@ -540,6 +814,20 @@ const stepCount = lesson.steps.length;
     font-size: 0.83rem;
     color: var(--aw-color-text-muted);
     margin: 0.1rem 0 0;
+  }
+  .ct-done-next {
+    flex: 0 0 auto;
+    font-size: 0.85rem;
+    font-weight: 500;
+    color: var(--ct-accent);
+    border: 1px solid var(--turquoise-border);
+    border-radius: 8px;
+    padding: 0.45rem 0.85rem;
+    transition: all 0.18s ease;
+  }
+  .ct-done-next:hover {
+    background: var(--aw-color-bg-page);
+    box-shadow: 0 0 16px var(--turquoise-glow);
   }
 
   /* ── Tooltip ──────────────────────────────────────────────── */
@@ -584,7 +872,8 @@ const stepCount = lesson.steps.length;
     .ct-progress-fill,
     .ct-active.is-shake,
     .ct-done,
-    .ct-tip {
+    .ct-tip,
+    .ct-choice {
       animation: none !important;
       transition: none !important;
     }
@@ -592,108 +881,84 @@ const stepCount = lesson.steps.length;
 </style>
 
 <script>
+  import { runJs, runPy, normalizeOutput, evaluateChecks } from '../lib/runner';
+  import type { Check } from '../lib/runner';
+  import {
+    addXp,
+    XP,
+    setStepIndex,
+    clearLesson,
+    markLessonDone,
+    unlock,
+    bumpCounter,
+    getLevelInfo,
+    liveStreak,
+    gradeReview,
+  } from '../lib/store';
+
   // ── Tipos del payload ──────────────────────────────────────────
-  type Step = { instruction: string; explanationHtml: string; solution: string; hint: string };
+  type Kind = 'type' | 'info' | 'quiz' | 'predict' | 'fix' | 'challenge';
+  type Choice = { textHtml: string; correct: boolean; feedbackHtml: string };
+  type Step = {
+    kind: Kind;
+    instruction: string;
+    explanationHtml: string;
+    hint: string;
+    revealHtml: string;
+    solution: string;
+    question: string;
+    choices: Choice[];
+    code: string;
+    expectedOutput: string;
+    buggyCode: string;
+    starter: string;
+    checks: Check[];
+    referenceSolution: string;
+  };
   type GlossaryMap = Record<string, { term: string; definition: string }>;
   type Payload = {
-    language: 'javascript' | 'python';
+    language: 'javascript' | 'python' | 'none';
+    runnable: boolean;
     runtimeLabel: string;
     courseSlug: string;
     lessonSlug: string;
+    tags: string[];
     glossary: GlossaryMap;
     steps: Step[];
   };
-
-  interface Pyodide {
-    runPython(code: string): unknown;
-  }
-
-  const PYODIDE_VERSION = 'v0.26.4';
-  const PYODIDE_BASE = `https://cdn.jsdelivr.net/pyodide/${PYODIDE_VERSION}/full/`;
-  let pyodidePromise: Promise<Pyodide> | null = null;
-
-  function loadPyodide(): Promise<Pyodide> {
-    if (pyodidePromise) return pyodidePromise;
-    pyodidePromise = new Promise<Pyodide>((resolve, reject) => {
-      const s = document.createElement('script');
-      s.src = `${PYODIDE_BASE}pyodide.js`;
-      s.onload = () => {
-        const g = window as unknown as { loadPyodide?: (o: { indexURL: string }) => Promise<Pyodide> };
-        if (!g.loadPyodide) {
-          reject(new Error('pyodide no disponible'));
-          return;
-        }
-        g.loadPyodide({ indexURL: PYODIDE_BASE }).then(resolve).catch(reject);
-      };
-      s.onerror = () => reject(new Error('no se pudo cargar pyodide'));
-      document.head.appendChild(s);
-    });
-    return pyodidePromise;
-  }
-
-  // ── Ejecución ─────────────────────────────────────────────────
-  // incomplete: el programa todavía no cierra un bloque (sintaxis parcial válida).
-  // loadFailed: no se pudo cargar el motor (sin red) — el código igual es correcto.
   type RunResult = { ok: boolean; output: string; incomplete?: boolean; loadFailed?: boolean };
 
-  function runJs(code: string): RunResult {
-    const logs: string[] = [];
-    const fmt = (v: unknown): string => {
-      if (typeof v === 'string') return v;
-      try {
-        return JSON.stringify(v);
-      } catch {
-        return String(v);
-      }
-    };
-    const sandboxConsole = { log: (...a: unknown[]) => logs.push(a.map(fmt).join(' ')) };
-    let fn: (c: { log: (...a: unknown[]) => void }) => void;
-    try {
-      fn = new Function('console', `"use strict";\n${code}`) as typeof fn;
-    } catch {
-      return { ok: false, output: '', incomplete: true };
-    }
-    try {
-      fn(sandboxConsole);
-      return { ok: true, output: logs.join('\n') };
-    } catch (e) {
-      return { ok: false, output: String(e instanceof Error ? `${e.name}: ${e.message}` : e) };
-    }
-  }
+  const KIND_LABEL: Record<Kind, string> = {
+    type: 'Escribir',
+    info: 'Concepto',
+    quiz: 'Quiz',
+    predict: 'Predecir',
+    fix: 'Depurar',
+    challenge: 'Reto',
+  };
 
-  async function runPy(code: string): Promise<RunResult> {
-    let py: Pyodide;
-    try {
-      py = await loadPyodide();
-    } catch {
-      return { ok: false, output: '', loadFailed: true };
-    }
-    try {
-      py.runPython('import sys, io\n_ct_buf = io.StringIO()\nsys.stdout = _ct_buf');
-      py.runPython(code);
-      const out = py.runPython('_ct_buf.getvalue()');
-      py.runPython('sys.stdout = sys.__stdout__');
-      return { ok: true, output: String(out) };
-    } catch (e) {
-      try {
-        py.runPython('sys.stdout = sys.__stdout__');
-      } catch {
-        /* noop */
-      }
-      const msg = String(e instanceof Error ? e.message : e);
-      const incomplete = /unexpected EOF|expected an indented block|invalid syntax/i.test(msg);
-      return { ok: false, output: incomplete ? '' : msg.split('\n').slice(-3).join('\n'), incomplete };
-    }
+  // Inserta HTML CONFIABLE (currículum autoral, nunca input del alumno) de forma
+  // segura: lo parsea en un documento inerte con DOMParser (los scripts no se
+  // ejecutan) y adopta los nodos. El código del alumno jamás pasa por acá.
+  function setHTML(el: Element, markup: string): void {
+    el.replaceChildren();
+    if (!markup) return;
+    const parsed = new DOMParser().parseFromString(markup, 'text/html');
+    el.append(...Array.from(parsed.body.childNodes));
   }
 
   // ── Utilidades ────────────────────────────────────────────────
   const norm = (s: string) => s.replace(/\s+$/g, '');
   const leadingWs = (s: string) => s.match(/^\s*/)?.[0] ?? '';
 
-  // Próximo "trozo" a tipear: espacios iniciales + un token (string, palabra o símbolo).
+  // Próximo "trozo" a tipear: espacios iniciales + un token.
   function nextChunk(remaining: string): string {
     const m = remaining.match(/^(\s*)("[^"]*"|'[^']*'|`[^`]*`|\w+|[^\w\s])/);
     return m ? m[0] : remaining;
+  }
+
+  async function runProgram(language: string, code: string): Promise<RunResult> {
+    return language === 'python' ? runPy(code) : runJs(code);
   }
 
   // ── Controlador de una instancia ──────────────────────────────
@@ -707,50 +972,56 @@ const stepCount = lesson.steps.length;
 
     const $ = <T extends HTMLElement = HTMLElement>(sel: string) => root.querySelector<T>(sel);
     const stepNumEl = $('[data-ct-step-num]')!;
+    const kindBadge = $('[data-ct-kind-badge]')!;
     const pctEl = $('[data-ct-pct]')!;
     const fillEl = $('[data-ct-fill]')!;
     const instructionEl = $('[data-ct-instruction]')!;
     const explanationEl = $('[data-ct-explanation]')!;
     const suggestEl = $('[data-ct-suggest]')!;
     const suggestChip = $<HTMLButtonElement>('[data-ct-suggest-chip]')!;
+    const choicesEl = $('[data-ct-choices]')!;
+    const predictEl = $('[data-ct-predict]')!;
+    const predictInput = $<HTMLTextAreaElement>('[data-ct-predict-input]')!;
+    const feedbackEl = $('[data-ct-feedback]')!;
     const hintEl = $('[data-ct-hint]')!;
     const hintBtn = $<HTMLButtonElement>('[data-ct-hint-btn]')!;
-    const checkBtn = $<HTMLButtonElement>('[data-ct-check]')!;
+    const revealBtn = $<HTMLButtonElement>('[data-ct-reveal-btn]')!;
+    const primaryBtn = $<HTMLButtonElement>('[data-ct-primary]')!;
     const acceptedEl = $('[data-ct-accepted]')!;
     const activeWrap = $('[data-ct-active-wrap]')!;
     const fieldEl = activeWrap.querySelector<HTMLElement>('.ct-field')!;
     const typedEl = activeWrap.querySelector<HTMLElement>('.ct-typed')!;
     const ghostEl = activeWrap.querySelector<HTMLElement>('.ct-ghost')!;
     const input = $<HTMLInputElement>('[data-ct-input]')!;
+    const freeWrap = $('[data-ct-free]')!;
+    const freeInput = $<HTMLTextAreaElement>('[data-ct-free-input]')!;
+    const readonlyEl = $('[data-ct-readonly]')!;
     const resetBtn = $<HTMLButtonElement>('[data-ct-reset]')!;
     const outEl = $('[data-ct-out]')!;
     const runBtn = $<HTMLButtonElement>('[data-ct-run]')!;
+    const checksEl = $('[data-ct-checks]')!;
     const doneEl = $('[data-ct-done]')!;
+    const doneSub = $('[data-ct-done-sub]')!;
+    const doneNext = $<HTMLAnchorElement>('[data-ct-done-next]')!;
     const tipEl = $('[data-ct-tip]')!;
     const tipTerm = $('[data-ct-tip-term]')!;
     const tipDef = $('[data-ct-tip-def]')!;
 
-    const storeKey = `ct:lesson:${data.courseSlug}:${data.lessonSlug}`;
     const accepted: string[] = [];
     let current = 0;
     let finished = false;
+    let wrongThisStep = false;
+    let attemptsThisStep = 0;
+    let answered = false; // para quiz/predict-mc
 
-    function saveProgress() {
-      try {
-        localStorage.setItem(storeKey, String(current));
-        if (finished) {
-          const k = `ct:done:${data.courseSlug}`;
-          const set = new Set<string>(JSON.parse(localStorage.getItem(k) || '[]'));
-          set.add(data.lessonSlug);
-          localStorage.setItem(k, JSON.stringify([...set]));
-        }
-      } catch {
-        /* localStorage no disponible */
-      }
+    // ── Persistencia de progreso ──────────────────────────────
+    function saveStep() {
+      setStepIndex(data.courseSlug, data.lessonSlug, current);
     }
 
+    // ── Render del editor (lado derecho) ──────────────────────
     function renderAccepted() {
-      acceptedEl.innerHTML = '';
+      acceptedEl.replaceChildren();
       accepted.forEach((line, i) => {
         const row = document.createElement('div');
         row.className = 'ct-line';
@@ -783,7 +1054,6 @@ const stepCount = lesson.steps.length;
       const matches = sol.startsWith(val);
       ghostEl.textContent = matches ? sol.slice(val.length) : '';
       fieldEl.classList.toggle('is-mismatch', !matches && val.length > 0);
-      // chip con el próximo trozo
       const remaining = matches ? sol.slice(val.length) : '';
       const chunk = remaining ? nextChunk(remaining).trim() : '';
       if (chunk) {
@@ -794,23 +1064,23 @@ const stepCount = lesson.steps.length;
       }
     }
 
-    function loadStep() {
-      const step = data.steps[current];
-      if (!step) return;
-      instructionEl.textContent = step.instruction;
-      explanationEl.innerHTML = step.explanationHtml;
-      bindTerms();
+    // Oculta todas las zonas interactivas; cada kind muestra las suyas.
+    function resetRegions() {
+      suggestEl.hidden = true;
+      choicesEl.hidden = true;
+      choicesEl.replaceChildren();
+      predictEl.hidden = true;
+      feedbackEl.hidden = true;
+      feedbackEl.className = 'ct-feedback';
+      feedbackEl.replaceChildren();
       hintEl.hidden = true;
-      hintEl.textContent = step.hint;
-      input.value = leadingWs(step.solution);
-      input.disabled = false;
-      checkBtn.disabled = false;
-      updateGhost();
-      updateProgress();
-      input.focus();
-      // mover caret al final
-      const end = input.value.length;
-      input.setSelectionRange(end, end);
+      activeWrap.hidden = true;
+      freeWrap.hidden = true;
+      readonlyEl.hidden = true;
+      checksEl.hidden = true;
+      checksEl.replaceChildren();
+      revealBtn.hidden = true;
+      runBtn.hidden = true;
     }
 
     function setOutput(res: RunResult) {
@@ -818,7 +1088,7 @@ const stepCount = lesson.steps.length;
       if (res.loadFailed) {
         outEl.classList.add('ct-out-muted');
         outEl.textContent =
-          '// tu código es correcto. (No se pudo cargar el motor de ejecución en este entorno para mostrar la salida en vivo.)';
+          '// tu código es correcto. (No se pudo cargar el motor de ejecución en este entorno para mostrar la salida.)';
         return;
       }
       if (res.incomplete) {
@@ -839,78 +1109,383 @@ const stepCount = lesson.steps.length;
       outEl.textContent = res.output;
     }
 
-    async function runProgram(code: string) {
-      if (data.language === 'python') {
-        outEl.className = 'ct-console-out font-mono ct-out-muted';
-        outEl.textContent = '// ejecutando Python (WebAssembly)…';
-        setOutput(await runPy(code));
-      } else {
-        setOutput(runJs(code));
-      }
+    function setMutedOutput(text: string) {
+      outEl.className = 'ct-console-out font-mono ct-out-muted';
+      outEl.textContent = text;
     }
 
+    // ── Carga de un paso según su kind ────────────────────────
+    function loadStep() {
+      const step = data.steps[current];
+      if (!step) return;
+      wrongThisStep = false;
+      attemptsThisStep = 0;
+      answered = false;
+      resetRegions();
+
+      instructionEl.textContent = step.question || step.instruction;
+      setHTML(explanationEl, step.explanationHtml);
+      bindTermsIn(explanationEl);
+      hintEl.textContent = step.hint;
+      kindBadge.textContent = KIND_LABEL[step.kind];
+      kindBadge.hidden = false;
+      hintBtn.hidden = !step.hint;
+      primaryBtn.disabled = false;
+      updateProgress();
+
+      if (step.kind === 'type') loadTypeStep(step);
+      else if (step.kind === 'info') loadInfoStep(step);
+      else if (step.kind === 'quiz') loadChoiceStep(step, 'quiz');
+      else if (step.kind === 'predict') loadPredictStep(step);
+      else if (step.kind === 'fix') loadFixStep(step);
+      else if (step.kind === 'challenge') loadChallengeStep(step);
+    }
+
+    // kind: type
+    function loadTypeStep(step: Step) {
+      activeWrap.hidden = false;
+      primaryBtn.textContent = 'Comprobar';
+      input.value = leadingWs(step.solution);
+      input.disabled = false;
+      updateGhost();
+      input.focus();
+      const end = input.value.length;
+      input.setSelectionRange(end, end);
+    }
+
+    // kind: info
+    function loadInfoStep(step: Step) {
+      if (step.code) {
+        readonlyEl.hidden = false;
+        readonlyEl.textContent = step.code;
+      }
+      primaryBtn.textContent = current + 1 >= data.steps.length ? 'Terminar' : 'Entendido';
+      primaryBtn.focus();
+    }
+
+    // kind: quiz / predict-mc
+    function loadChoiceStep(step: Step, mode: 'quiz' | 'predict') {
+      if (mode === 'predict' && step.code) {
+        readonlyEl.hidden = false;
+        readonlyEl.textContent = step.code;
+        setMutedOutput('// ¿qué imprime? elegí una opción');
+      }
+      choicesEl.hidden = false;
+      step.choices.forEach((c, i) => {
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'ct-choice';
+        btn.dataset.idx = String(i);
+        const key = document.createElement('span');
+        key.className = 'ct-choice-key';
+        key.textContent = String.fromCharCode(65 + i);
+        const body = document.createElement('span');
+        setHTML(body, c.textHtml);
+        btn.append(key, body);
+        btn.addEventListener('click', () => answerChoice(step, i, mode));
+        choicesEl.appendChild(btn);
+      });
+      primaryBtn.textContent = 'Continuar';
+      primaryBtn.disabled = true; // hasta responder
+    }
+
+    function answerChoice(step: Step, idx: number, mode: 'quiz' | 'predict') {
+      if (answered) return;
+      answered = true;
+      const chosen = step.choices[idx];
+      if (!chosen.correct) wrongThisStep = true;
+      const btns = [...choicesEl.querySelectorAll<HTMLButtonElement>('.ct-choice')];
+      btns.forEach((b, i) => {
+        b.disabled = true;
+        if (step.choices[i].correct) b.classList.add('is-correct');
+        if (i === idx && !step.choices[i].correct) b.classList.add('is-wrong');
+      });
+      const fb = chosen.feedbackHtml || (chosen.correct ? '¡Correcto!' : 'No es esa. Mirá la opción marcada.');
+      feedbackEl.className = 'ct-feedback ' + (chosen.correct ? 'is-ok' : 'is-bad');
+      setHTML(feedbackEl, `<span class="ct-feedback-title">${chosen.correct ? '✓ Correcto' : '✗ Revisá'}</span>` + fb);
+      feedbackEl.hidden = false;
+      bindTermsIn(feedbackEl);
+      if (mode === 'predict' && step.code && data.runnable) {
+        runProgram(data.language, step.code).then(setOutput);
+      }
+      primaryBtn.disabled = false;
+      primaryBtn.focus();
+    }
+
+    // kind: predict (texto libre)
+    function loadPredictStep(step: Step) {
+      if (step.choices.length) {
+        loadChoiceStep(step, 'predict');
+        return;
+      }
+      if (step.code) {
+        readonlyEl.hidden = false;
+        readonlyEl.textContent = step.code;
+      }
+      predictEl.hidden = false;
+      predictInput.value = '';
+      setMutedOutput('// escribí lo que creés que imprime y comprobá');
+      primaryBtn.textContent = 'Comprobar';
+      predictInput.focus();
+    }
+
+    // kind: fix
+    function loadFixStep(step: Step) {
+      freeWrap.hidden = false;
+      freeInput.value = step.buggyCode || step.starter || '';
+      autosize(freeInput);
+      runBtn.hidden = false;
+      setMutedOutput('// arreglá el código y ejecutá para ver la salida');
+      primaryBtn.textContent = 'Comprobar';
+      freeInput.focus();
+    }
+
+    // kind: challenge
+    function loadChallengeStep(step: Step) {
+      freeWrap.hidden = false;
+      freeInput.value = step.starter || '';
+      autosize(freeInput);
+      runBtn.hidden = false;
+      renderChecks(step, null);
+      setMutedOutput('// escribí tu solución y ejecutá');
+      primaryBtn.textContent = 'Comprobar';
+      if (step.referenceSolution) revealBtn.hidden = false;
+      freeInput.focus();
+    }
+
+    function renderChecks(step: Step, results: { label: string; passed: boolean }[] | null) {
+      if (!step.checks.length) {
+        checksEl.hidden = true;
+        return;
+      }
+      checksEl.hidden = false;
+      checksEl.replaceChildren();
+      step.checks.forEach((c, i) => {
+        const li = document.createElement('li');
+        const r = results?.[i];
+        li.className = 'ct-check' + (r ? (r.passed ? ' is-pass' : ' is-fail') : '');
+        const mark = document.createElement('span');
+        mark.className = 'ct-check-mark';
+        mark.textContent = r ? (r.passed ? '✓' : '·') : '·';
+        const label = document.createElement('span');
+        label.textContent = c.label;
+        li.append(mark, label);
+        checksEl.appendChild(li);
+      });
+    }
+
+    // ── Resolver / avanzar ────────────────────────────────────
     function shake() {
       activeWrap.classList.remove('is-shake');
       void activeWrap.offsetWidth;
       activeWrap.classList.add('is-shake');
     }
 
-    async function check() {
+    function xpForKind(kind: Kind): number {
+      const base = (XP as Record<string, number>)[kind] ?? 4;
+      return wrongThisStep ? Math.max(2, Math.round(base / 2)) : base;
+    }
+
+    function solveStep() {
+      const step = data.steps[current];
+      const gained = xpForKind(step.kind);
+      addXp(gained, `${step.kind}:${data.lessonSlug}`);
+      if (current === 0) unlock('first-step');
+      if (step.kind === 'fix') {
+        const n = bumpCounter('fixes');
+        if (n >= 5) unlock('bug-hunter');
+      }
+      if (step.kind === 'challenge') {
+        const n = bumpCounter('challenges');
+        if (n >= 5) unlock('challenger');
+      }
+      const hour = new Date().getHours();
+      if (hour >= 0 && hour < 5) unlock('night-owl');
+
+      if (step.revealHtml && step.kind !== 'quiz' && step.kind !== 'predict') {
+        feedbackEl.className = 'ct-feedback is-ok';
+        setHTML(feedbackEl, `<span class="ct-feedback-title">✓ ¡Bien!</span>` + step.revealHtml);
+        feedbackEl.hidden = false;
+        bindTermsIn(feedbackEl);
+      }
+
+      current += 1;
+      saveStep();
+      if (current >= data.steps.length) {
+        finishLesson();
+      } else {
+        loadStep();
+      }
+    }
+
+    async function handlePrimary() {
       const step = data.steps[current];
       if (!step) return;
-      if (norm(input.value) === norm(step.solution)) {
-        accepted.push(step.solution);
-        renderAccepted();
-        current += 1;
-        saveProgress();
-        if (current >= data.steps.length) {
-          finishLesson();
+
+      if (step.kind === 'type') {
+        if (norm(input.value) === norm(step.solution)) {
+          accepted.push(step.solution);
+          renderAccepted();
+          if (data.runnable) {
+            const partial = current + 1 < data.steps.length;
+            const res = await runProgram(data.language, accepted.join('\n'));
+            setOutput(res.incomplete && partial ? { ok: true, output: '', incomplete: true } : res);
+          }
+          solveStep();
         } else {
-          loadStep();
-          await runProgram(accepted.join('\n'));
+          wrongThisStep = true;
+          shake();
+          hintEl.hidden = false;
         }
-      } else {
-        shake();
-        hintEl.hidden = false;
+        return;
+      }
+
+      if (step.kind === 'info') {
+        solveStep();
+        return;
+      }
+
+      if (step.kind === 'quiz' || (step.kind === 'predict' && step.choices.length)) {
+        if (!answered) return;
+        solveStep();
+        return;
+      }
+
+      if (step.kind === 'predict') {
+        const expected = normalizeOutput(step.expectedOutput);
+        const got = normalizeOutput(predictInput.value);
+        const ok = got === expected;
+        if (data.runnable && step.code) {
+          runProgram(data.language, step.code).then(setOutput);
+        } else {
+          outEl.className = 'ct-console-out font-mono';
+          outEl.textContent = step.expectedOutput;
+        }
+        feedbackEl.className = 'ct-feedback ' + (ok ? 'is-ok' : 'is-bad');
+        setHTML(
+          feedbackEl,
+          ok
+            ? `<span class="ct-feedback-title">✓ ¡Exacto!</span>Esa es la salida.`
+            : `<span class="ct-feedback-title">Casi</span>Comparalo con la salida real de la consola y reintentá.`
+        );
+        feedbackEl.hidden = false;
+        if (!ok) {
+          wrongThisStep = true;
+          return;
+        }
+        solveStep();
+        return;
+      }
+
+      if (step.kind === 'fix' || step.kind === 'challenge') {
+        attemptsThisStep++;
+        const code = freeInput.value;
+        if (!data.runnable) {
+          const ok = step.referenceSolution ? norm(code) === norm(step.referenceSolution) : !!step.expectedOutput;
+          if (ok) solveStep();
+          return;
+        }
+        const res = await runProgram(data.language, code);
+        setOutput(res);
+        let pass = false;
+        if (step.checks.length) {
+          const results = evaluateChecks(res.output, step.checks as Check[]);
+          renderChecks(step, results);
+          pass = res.ok && results.every((r) => r.passed);
+        } else if (step.expectedOutput) {
+          pass = res.ok && normalizeOutput(res.output) === normalizeOutput(step.expectedOutput);
+        } else {
+          pass = res.ok;
+        }
+        if (pass) {
+          solveStep();
+        } else {
+          wrongThisStep = true;
+          feedbackEl.className = 'ct-feedback is-bad';
+          setHTML(
+            feedbackEl,
+            !res.ok && !res.incomplete
+              ? `<span class="ct-feedback-title">Hay un error</span>Mirá el mensaje en la consola y ajustá el código.`
+              : `<span class="ct-feedback-title">Todavía no</span>La salida no cumple lo pedido. Revisá las comprobaciones.`
+          );
+          feedbackEl.hidden = false;
+          if (attemptsThisStep >= 2 && step.referenceSolution) revealBtn.hidden = false;
+        }
+        return;
       }
     }
 
     function finishLesson() {
       finished = true;
-      saveProgress();
+      const isNew = markLessonDone(data.courseSlug, data.lessonSlug, data.tags);
+      if (isNew) addXp(XP.lessonBonus, 'lesson-bonus');
+      else gradeReview(`${data.courseSlug}/${data.lessonSlug}`, true); // repaso superado
+      unlock('first-lesson');
+      const li = getLevelInfo();
+      if (li.level >= 5) unlock('level-5');
+      const st = liveStreak();
+      if (st.count >= 3) unlock('streak-3');
+      if (st.count >= 7) unlock('streak-7');
+      if (data.courseSlug === 'ia' || data.courseSlug.startsWith('ia')) unlock('ai-aware');
+
       activeWrap.hidden = true;
+      freeWrap.hidden = true;
+      readonlyEl.hidden = true;
       suggestEl.hidden = true;
-      instructionEl.textContent = '¡Programa completo!';
-      explanationEl.innerHTML =
-        'Repasá tu código a la izquierda. Podés editarlo libremente y volver a ejecutarlo con <strong>Ejecutar</strong>.';
+      choicesEl.hidden = true;
+      predictEl.hidden = true;
+      instructionEl.textContent = '¡Lección completada!';
+      kindBadge.hidden = true;
+      setHTML(
+        explanationEl,
+        data.runnable
+          ? 'Repasá tu trabajo a la derecha. Podés editar y volver a ejecutar con <strong>Ejecutar</strong>.'
+          : 'Buen trabajo. Avanzá a la próxima lección cuando quieras.'
+      );
+      feedbackEl.hidden = true;
       hintEl.hidden = true;
       hintBtn.hidden = true;
-      checkBtn.hidden = true;
+      revealBtn.hidden = true;
+      primaryBtn.hidden = true;
       updateProgress();
+      pctEl.textContent = '100%';
+      fillEl.style.width = '100%';
+      const li2 = getLevelInfo();
+      doneSub.textContent = isNew
+        ? `+${XP.lessonBonus} XP de bonus · Nivel ${li2.level} · ${li2.rank}`
+        : `Ya la habías completado. Nivel ${li2.level} · ${li2.rank}`;
       doneEl.hidden = false;
-      runBtn.hidden = false;
-      makeEditable();
-      runProgram(accepted.join('\n'));
+      if (data.runnable && accepted.length) {
+        runBtn.hidden = false;
+        makeEditable();
+        runProgram(data.language, accepted.join('\n')).then(setOutput);
+      }
+      const nextHref = root.getAttribute('data-next-href');
+      if (nextHref) {
+        doneNext.href = nextHref;
+        doneNext.hidden = false;
+      }
     }
 
-    // Editor libre tras completar: un textarea con el programa final.
+    // Editor libre tras completar (para cursos con código acumulado).
     function makeEditable() {
-      const ta = document.createElement('textarea');
-      ta.className = 'ct-input font-mono';
-      ta.style.width = '100%';
-      ta.style.minHeight = `${Math.max(accepted.length, 3) * 1.75}em`;
-      ta.style.color = 'var(--aw-color-text-default)';
-      ta.style.resize = 'vertical';
-      ta.spellcheck = false;
-      ta.value = accepted.join('\n');
-      acceptedEl.innerHTML = '';
-      acceptedEl.appendChild(ta);
-      runBtn.onclick = () => runProgram(ta.value);
+      acceptedEl.replaceChildren();
+      freeWrap.hidden = false;
+      freeInput.value = accepted.join('\n');
+      autosize(freeInput);
+      runBtn.onclick = () => runProgram(data.language, freeInput.value).then(setOutput);
+    }
+
+    function autosize(ta: HTMLTextAreaElement) {
+      ta.style.height = 'auto';
+      ta.style.height = Math.max(ta.scrollHeight, 144) + 'px';
     }
 
     // ── Glosario (tooltips) ─────────────────────────────────────
-    function bindTerms() {
-      explanationEl.querySelectorAll<HTMLElement>('.ct-term').forEach((btn) => {
+    function bindTermsIn(scope: HTMLElement) {
+      scope.querySelectorAll<HTMLElement>('.ct-term').forEach((btn) => {
+        if (btn.dataset.bound === '1') return;
+        btn.dataset.bound = '1';
         const key = btn.dataset.term || '';
         const entry = data.glossary[key];
         if (!entry) return;
@@ -962,34 +1537,64 @@ const stepCount = lesson.steps.length;
         acceptChunk();
       } else if (e.key === 'Enter') {
         e.preventDefault();
-        check();
+        handlePrimary();
       }
     });
     suggestChip.addEventListener('click', () => {
       acceptChunk();
       input.focus();
     });
-    checkBtn.addEventListener('click', () => check());
+    freeInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Tab') {
+        e.preventDefault();
+        const s = freeInput.selectionStart;
+        const en = freeInput.selectionEnd;
+        freeInput.value = freeInput.value.slice(0, s) + '  ' + freeInput.value.slice(en);
+        freeInput.selectionStart = freeInput.selectionEnd = s + 2;
+      }
+    });
+    freeInput.addEventListener('input', () => autosize(freeInput));
+    predictInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) {
+        e.preventDefault();
+        handlePrimary();
+      }
+    });
+    primaryBtn.addEventListener('click', () => handlePrimary());
     hintBtn.addEventListener('click', () => {
       hintEl.hidden = !hintEl.hidden;
+    });
+    revealBtn.addEventListener('click', () => {
+      const step = data.steps[current];
+      if (step?.referenceSolution) {
+        freeInput.value = step.referenceSolution;
+        autosize(freeInput);
+        freeInput.focus();
+      }
+    });
+    runBtn.addEventListener('click', async () => {
+      const step = data.steps[current];
+      if (!finished && (step?.kind === 'fix' || step?.kind === 'challenge')) {
+        setMutedOutput('// ejecutando…');
+        const res = await runProgram(data.language, freeInput.value);
+        setOutput(res);
+        if (step.kind === 'challenge' && step.checks.length) {
+          renderChecks(step, evaluateChecks(res.output, step.checks as Check[]));
+        }
+      }
     });
     resetBtn.addEventListener('click', () => {
       accepted.length = 0;
       current = 0;
       finished = false;
-      try {
-        localStorage.removeItem(storeKey);
-      } catch {
-        /* noop */
-      }
-      acceptedEl.innerHTML = '';
-      activeWrap.hidden = false;
-      hintBtn.hidden = false;
-      checkBtn.hidden = false;
+      clearLesson(data.courseSlug, data.lessonSlug);
+      acceptedEl.replaceChildren();
       doneEl.hidden = true;
-      runBtn.hidden = true;
-      outEl.className = 'ct-console-out font-mono ct-out-muted';
-      outEl.textContent = '';
+      doneNext.hidden = true;
+      hintBtn.hidden = false;
+      primaryBtn.hidden = false;
+      runBtn.onclick = null;
+      setMutedOutput('// la salida de tu programa aparece acá');
       loadStep();
     });
     window.addEventListener('scroll', () => (tipEl.hidden = true), { passive: true });
@@ -997,8 +1602,7 @@ const stepCount = lesson.steps.length;
     // ── Arranque ────────────────────────────────────────────────
     renderAccepted();
     loadStep();
-    outEl.className = 'ct-console-out font-mono ct-out-muted';
-    outEl.textContent = '// la salida de tu programa aparece acá';
+    setMutedOutput(data.runnable ? '// la salida de tu programa aparece acá' : '// lección conceptual');
   }
 
   function initAll() {
