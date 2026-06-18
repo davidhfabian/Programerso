@@ -9,7 +9,10 @@
     "preview": "astro preview",
     "check": "astro check",
     "verify:content": "node --experimental-strip-types scripts/verify-content.mjs",
-    "verify": "pnpm run check && pnpm run verify:content && pnpm run build"
+    "verify": "pnpm run check && pnpm run verify:content && pnpm run build",
+    "test:e2e": "playwright test",
+    "test:e2e:smoke": "playwright test smoke",
+    "test:e2e:courses": "playwright test courses"
   },
   "dependencies": {
     "@astrojs/tailwind": "^5.1.5",

@@ -1,0 +1,102 @@
+---
+export const prerender = true;
+import Layout from '~/layouts/Layout.astro';
+import { Icon } from 'astro-icon/components';
+---
+
+<Layout title="Iniciar sesión" description="Entrá a tu cuenta de Programerso.">
+  <section class="max-w-md mx-auto px-4 sm:px-6 pt-16 md:pt-20 pb-24">
+    <div class="text-center mb-8">
+      <a href="/" class="inline-flex items-center gap-2 font-heading font-semibold text-default mb-6">
+        <span class="font-mono text-primary text-lg">{'</>'}</span> Programerso
+      </a>
+      <h1 class="font-heading text-2xl md:text-3xl font-semibold tracking-tight text-default mb-2">Iniciá sesión</h1>
+      <p class="text-muted text-[0.92rem]">Seguí donde lo dejaste.</p>
+    </div>
+
+    <form data-login-form class="space-y-4 rounded-2xl border border-[var(--aw-color-border)] bg-[var(--aw-color-bg-surface)] p-6">
+      <div>
+        <label class="block text-[0.82rem] text-muted mb-1.5" for="login-email">Email</label>
+        <input id="login-email" data-login-email type="email" autocomplete="email" required
+          class="w-full rounded-lg border border-[var(--aw-color-border)] bg-[var(--aw-color-bg-page)] px-3.5 py-2.5 text-default outline-none focus:border-[var(--aw-color-primary)]"
+          placeholder="vos@ejemplo.com" />
+      </div>
+      <div>
+        <label class="block text-[0.82rem] text-muted mb-1.5" for="login-pass">Contraseña</label>
+        <input id="login-pass" data-login-pass type="password" autocomplete="current-password" required
+          class="w-full rounded-lg border border-[var(--aw-color-border)] bg-[var(--aw-color-bg-page)] px-3.5 py-2.5 text-default outline-none focus:border-[var(--aw-color-primary)]"
+          placeholder="Tu contraseña" />
+      </div>
+
+      <p class="text-[0.82rem] text-red-500" data-login-error hidden></p>
+
+      <button type="submit" data-login-submit class="btn-primary w-full">
+        Entrar
+        <Icon name="tabler:arrow-right" class="w-4 h-4 ml-1.5 inline-block" />
+      </button>
+    </form>
+
+    {/* Cuentas en este dispositivo (acceso rápido) */}
+    <div data-login-accounts hidden class="mt-6">
+      <p class="text-[0.78rem] text-[var(--aw-color-text-tertiary)] mb-2">Cuentas en este dispositivo:</p>
+      <div class="space-y-2" data-login-accounts-list></div>
+    </div>
+
+    <p class="text-center text-[0.88rem] text-muted mt-6">
+      ¿No tenés cuenta? <a href="/registro" class="text-primary hover:underline">Creá una gratis</a>
+    </p>
+  </section>
+</Layout>
+
+<script>
+  import { login, listAccounts } from '~/lib/auth';
+
+  function setup() {
+    const form = document.querySelector<HTMLFormElement>('[data-login-form]');
+    if (!form) return;
+    const err = document.querySelector<HTMLElement>('[data-login-error]');
+    const submit = document.querySelector<HTMLButtonElement>('[data-login-submit]');
+    const emailInput = document.querySelector<HTMLInputElement>('[data-login-email]');
+
+    // Mostrar cuentas existentes para autocompletar el email
+    const accounts = listAccounts();
+    if (accounts.length) {
+      const wrap = document.querySelector<HTMLElement>('[data-login-accounts]');
+      const list = document.querySelector<HTMLElement>('[data-login-accounts-list]');
+      if (wrap && list) {
+        wrap.hidden = false;
+        list.replaceChildren();
+        accounts.forEach((a) => {
+          const b = document.createElement('button');
+          b.type = 'button';
+          b.className =
+            'w-full text-left rounded-lg border border-[var(--aw-color-border)] hover:border-[var(--aw-color-border-hover)] px-3.5 py-2 text-[0.85rem] text-default transition-colors';
+          b.textContent = `${a.name} · ${a.email}`;
+          b.addEventListener('click', () => {
+            if (emailInput) emailInput.value = a.email;
+            document.querySelector<HTMLInputElement>('[data-login-pass]')?.focus();
+          });
+          list.appendChild(b);
+        });
+      }
+    }
+
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      if (err) err.hidden = true;
+      const email = (emailInput?.value || '').trim();
+      const pass = document.querySelector<HTMLInputElement>('[data-login-pass]')?.value || '';
+      if (submit) { submit.disabled = true; submit.textContent = 'Entrando…'; }
+      const res = await login(email, pass);
+      if (res.ok) {
+        location.href = '/progreso';
+      } else {
+        if (err) { err.textContent = res.error; err.hidden = false; }
+        if (submit) { submit.disabled = false; submit.textContent = 'Entrar'; }
+      }
+    });
+  }
+  document.addEventListener('astro:page-load', setup);
+  if (document.readyState !== 'loading') setup();
+  else document.addEventListener('DOMContentLoaded', setup);
+</script>

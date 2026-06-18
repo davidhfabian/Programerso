@@ -118,6 +118,16 @@ const nav = [
             )
           }
 
+          <a
+            data-account
+            href="/entrar"
+            title="Tu cuenta"
+            aria-label="Tu cuenta"
+            class="grid place-items-center min-w-9 h-9 px-2 rounded-lg text-muted hover:text-default border border-[var(--aw-color-border)] hover:border-[var(--aw-color-border-hover)] transition-colors text-base leading-none"
+          >
+            <Icon name="tabler:user" class="w-[18px] h-[18px]" data-account-icon />
+          </a>
+
           <button
             type="button"
             data-theme-toggle
@@ -296,7 +306,22 @@ const nav = [
 
     <script>
       // HUD de progreso (chip del header) + celebración (toasts + confetti).
-      import { getLevelInfo, liveStreak, ACHIEVEMENTS, getSettings } from '~/lib/store';
+      import { getLevelInfo, liveStreak, ACHIEVEMENTS, getSettings, getAvatar } from '~/lib/store';
+      import { currentUser } from '~/lib/auth';
+
+      function paintAccount() {
+        const acc = document.querySelector<HTMLAnchorElement>('[data-account]');
+        if (!acc) return;
+        const u = currentUser();
+        if (u) {
+          acc.textContent = getAvatar();
+          acc.setAttribute('href', '/perfil');
+          acc.title = u.name;
+        } else {
+          acc.setAttribute('href', '/entrar');
+          acc.title = 'Entrar';
+        }
+      }
 
       function paintChip() {
         const chip = document.querySelector<HTMLElement>('[data-stats-chip]');
@@ -451,6 +476,7 @@ const nav = [
 
       function setup() {
         paintChip();
+        paintAccount();
         window.removeEventListener('pg:update', onUpdate);
         window.addEventListener('pg:update', onUpdate);
       }

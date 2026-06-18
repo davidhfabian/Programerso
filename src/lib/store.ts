@@ -6,6 +6,9 @@
 // Toda lectura/escritura está protegida con try/catch para entornos sin storage.
 
 // ── Claves de almacenamiento ─────────────────────────────────────
+// El PROGRESO se namespacea por cuenta activa: `u:{scope}:{key}` (scope = id de
+// cuenta, o 'guest' sin sesión). Las claves de AUTENTICACIÓN (pg:auth:*) son
+// globales al dispositivo y NO se namespacean.
 const K = {
   lesson: (course: string, lesson: string) => `ct:lesson:${course}:${lesson}`,
   done: (course: string) => `ct:done:${course}`,
@@ -18,30 +21,109 @@ const K = {
   profile: 'pg:profile',
 };
 
-// ── Utilidades de almacenamiento ─────────────────────────────────
-function read<T>(key: string, fallback: T): T {
+const SESSION_KEY = 'pg:auth:session';
+
+// ── Acceso crudo (sin namespace) ─────────────────────────────────
+function rawGet(key: string): string | null {
   try {
-    const raw = localStorage.getItem(key);
+    return localStorage.getItem(key);
+  } catch {
+    return null;
+  }
+}
+function rawSet(key: string, value: string): void {
+  try {
+    localStorage.setItem(key, value);
+  } catch {
+    /* sin storage */
+  }
+}
+function rawRemove(key: string): void {
+  try {
+    localStorage.removeItem(key);
+  } catch {
+    /* noop */
+  }
+}
+
+// ── Sesión / scope ───────────────────────────────────────────────
+/** Id de la cuenta activa, o 'guest' si no hay sesión. */
+export function activeScope(): string {
+  return rawGet(SESSION_KEY) || 'guest';
+}
+export function getSessionId(): string | null {
+  return rawGet(SESSION_KEY);
+}
+export function setSessionId(id: string | null): void {
+  if (id) rawSet(SESSION_KEY, id);
+  else rawRemove(SESSION_KEY);
+  emit({ kind: 'session', id });
+}
+function nsKey(key: string): string {
+  ensureMigrated();
+  return `u:${activeScope()}:${key}`;
+}
+
+// Migración única: copia el progreso "viejo" (claves sin namespace) al scope
+// 'guest', para no perder el avance de quienes ya usaban la app.
+let migrated = false;
+function ensureMigrated(): void {
+  if (migrated) return;
+  migrated = true;
+  try {
+    if (localStorage.getItem('pg:__migrated_v1')) return;
+    const keys: string[] = [];
+    for (let i = 0; i < localStorage.length; i++) {
+      const k = localStorage.key(i);
+      if (k) keys.push(k);
+    }
+    for (const k of keys) {
+      if (k.startsWith('u:') || k.startsWith('pg:auth') || k === 'pg:__migrated_v1') continue;
+      if (k.startsWith('pg:') || k.startsWith('ct:')) {
+        const v = localStorage.getItem(k);
+        if (v != null) localStorage.setItem(`u:guest:${k}`, v);
+      }
+    }
+    localStorage.setItem('pg:__migrated_v1', '1');
+  } catch {
+    /* noop */
+  }
+}
+
+/** Copia todo el progreso de un scope a otro (al registrarse desde invitado). */
+export function copyProgress(from: string, to: string): void {
+  try {
+    const prefix = `u:${from}:`;
+    const keys: string[] = [];
+    for (let i = 0; i < localStorage.length; i++) {
+      const k = localStorage.key(i);
+      if (k && k.startsWith(prefix)) keys.push(k);
+    }
+    for (const k of keys) {
+      const v = localStorage.getItem(k);
+      if (v != null) localStorage.setItem(`u:${to}:` + k.slice(prefix.length), v);
+    }
+  } catch {
+    /* noop */
+  }
+}
+
+// ── Utilidades de almacenamiento (con namespace de cuenta) ───────
+function read<T>(key: string, fallback: T): T {
+  const raw = rawGet(nsKey(key));
+  try {
     return raw == null ? fallback : (JSON.parse(raw) as T);
   } catch {
     return fallback;
   }
 }
 function write(key: string, value: unknown): void {
-  try {
-    localStorage.setItem(key, JSON.stringify(value));
-  } catch {
-    /* sin storage */
-  }
+  rawSet(nsKey(key), JSON.stringify(value));
 }
 function readNum(key: string, fallback = 0): number {
-  try {
-    const raw = localStorage.getItem(key);
-    const n = raw == null ? fallback : Number(raw);
-    return Number.isFinite(n) ? n : fallback;
-  } catch {
-    return fallback;
-  }
+  const raw = rawGet(nsKey(key));
+  const n = raw == null ? fallback : Number(raw);
+  return Number.isFinite(n) ? n : fallback;
 }
 
 /** Fecha local en formato YYYY-MM-DD (no UTC, para que la racha respete la zona del alumno). */
@@ -191,18 +273,10 @@ export function getStepIndex(course: string, lesson: string): number {
   return readNum(K.lesson(course, lesson), 0);
 }
 export function setStepIndex(course: string, lesson: string, idx: number): void {
-  try {
-    localStorage.setItem(K.lesson(course, lesson), String(idx));
-  } catch {
-    /* noop */
-  }
+  rawSet(nsKey(K.lesson(course, lesson)), String(idx));
 }
 export function clearLesson(course: string, lesson: string): void {
-  try {
-    localStorage.removeItem(K.lesson(course, lesson));
-  } catch {
-    /* noop */
-  }
+  rawRemove(nsKey(K.lesson(course, lesson)));
 }
 export function getDone(course: string): Set<string> {
   return new Set<string>(read<string[]>(K.done(course), []));
@@ -265,11 +339,7 @@ export function unlock(id: string): Achievement | null {
 export function bumpCounter(name: string): number {
   const key = `pg:count:${name}`;
   const n = readNum(key, 0) + 1;
-  try {
-    localStorage.setItem(key, String(n));
-  } catch {
-    /* noop */
-  }
+  rawSet(nsKey(key), String(n));
   return n;
 }
 
@@ -349,17 +419,18 @@ export function getProfile(): Profile {
 }
 export function setProfile(patch: Partial<Profile>): Profile {
   const cur = getProfile();
-  if (!localStorageHas(K.profile)) write(K.profile, { ...cur }); // fija createdAt
+  if (rawGet(nsKey(K.profile)) == null) write(K.profile, { ...cur }); // fija createdAt
   const next = { ...cur, ...patch };
   write(K.profile, next);
   return next;
 }
-function localStorageHas(key: string): boolean {
-  try {
-    return localStorage.getItem(key) != null;
-  } catch {
-    return false;
-  }
+
+// ── Avatar (por cuenta) ──────────────────────────────────────────
+export function getAvatar(): string {
+  return rawGet(nsKey('pg:avatar')) || '🦊';
+}
+export function setAvatar(a: string): void {
+  rawSet(nsKey('pg:avatar'), a);
 }
 
 // ── Meta diaria ──────────────────────────────────────────────────
@@ -367,40 +438,44 @@ export function getDailyGoal(): number {
   return Math.max(10, readNum('pg:goal', 40));
 }
 export function setDailyGoal(n: number): void {
-  try {
-    localStorage.setItem('pg:goal', String(Math.max(10, Math.round(n))));
-    emit({ kind: 'goal', goal: n });
-  } catch {
-    /* noop */
-  }
+  rawSet(nsKey('pg:goal'), String(Math.max(10, Math.round(n))));
+  emit({ kind: 'goal', goal: n });
 }
 /** XP ganada hoy. */
 export function todayXp(): number {
   return getActivity()[today()] || 0;
 }
 
-// ── Exportar / importar todo el progreso ─────────────────────────
-const EXPORT_KEYS_PREFIX = ['ct:', 'pg:'];
-export function exportProgress(): string {
-  const data: Record<string, string> = {};
+// ── Exportar / importar / reiniciar (sólo el scope de la cuenta activa) ──
+function scopeKeys(): string[] {
+  const prefix = `u:${activeScope()}:`;
+  const keys: string[] = [];
   try {
     for (let i = 0; i < localStorage.length; i++) {
       const key = localStorage.key(i);
-      if (key && EXPORT_KEYS_PREFIX.some((p) => key.startsWith(p))) {
-        data[key] = localStorage.getItem(key) ?? '';
-      }
+      if (key && key.startsWith(prefix)) keys.push(key);
     }
   } catch {
     /* noop */
   }
-  return JSON.stringify({ app: 'programerso', version: 1, exportedAt: today(), data }, null, 2);
+  return keys;
+}
+export function exportProgress(): string {
+  const prefix = `u:${activeScope()}:`;
+  const data: Record<string, string> = {};
+  for (const key of scopeKeys()) {
+    data[key.slice(prefix.length)] = rawGet(key) ?? '';
+  }
+  return JSON.stringify({ app: 'programerso', version: 2, exportedAt: today(), data }, null, 2);
 }
 export function importProgress(json: string): boolean {
   try {
     const parsed = JSON.parse(json);
     if (!parsed || parsed.app !== 'programerso' || typeof parsed.data !== 'object') return false;
     for (const [k, v] of Object.entries(parsed.data)) {
-      if (EXPORT_KEYS_PREFIX.some((p) => k.startsWith(p))) localStorage.setItem(k, String(v));
+      // soporta exports v1 (claves con prefijo ct:/pg:) y v2 (claves internas)
+      const inner = k.startsWith('u:') ? k.replace(/^u:[^:]+:/, '') : k;
+      if (inner.startsWith('ct:') || inner.startsWith('pg:')) rawSet(nsKey(inner), String(v));
     }
     emit({ kind: 'import' });
     return true;
@@ -408,19 +483,10 @@ export function importProgress(json: string): boolean {
     return false;
   }
 }
-/** Borra TODO el progreso (con cuidado). */
+/** Borra el progreso de la cuenta activa (no las otras cuentas). */
 export function resetAll(): void {
-  try {
-    const keys: string[] = [];
-    for (let i = 0; i < localStorage.length; i++) {
-      const key = localStorage.key(i);
-      if (key && EXPORT_KEYS_PREFIX.some((p) => key.startsWith(p))) keys.push(key);
-    }
-    keys.forEach((k) => localStorage.removeItem(k));
-    emit({ kind: 'reset' });
-  } catch {
-    /* noop */
-  }
+  scopeKeys().forEach((k) => rawRemove(k));
+  emit({ kind: 'reset' });
 }
 
 // ── XP por tipo de paso ──────────────────────────────────────────

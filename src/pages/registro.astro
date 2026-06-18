@@ -1,0 +1,95 @@
+---
+export const prerender = true;
+import Layout from '~/layouts/Layout.astro';
+import { Icon } from 'astro-icon/components';
+---
+
+<Layout title="Crear cuenta" description="Creá tu cuenta gratis para guardar tu progreso, racha y certificados.">
+  <section class="max-w-md mx-auto px-4 sm:px-6 pt-16 md:pt-20 pb-24">
+    <div class="text-center mb-8">
+      <a href="/" class="inline-flex items-center gap-2 font-heading font-semibold text-default mb-6">
+        <span class="font-mono text-primary text-lg">{'</>'}</span> Programerso
+      </a>
+      <h1 class="font-heading text-2xl md:text-3xl font-semibold tracking-tight text-default mb-2">Creá tu cuenta</h1>
+      <p class="text-muted text-[0.92rem]">Gratis. Guardá tu progreso, racha y certificados.</p>
+    </div>
+
+    <form data-reg-form class="space-y-4 rounded-2xl border border-[var(--aw-color-border)] bg-[var(--aw-color-bg-surface)] p-6">
+      <div>
+        <label class="block text-[0.82rem] text-muted mb-1.5" for="reg-name">Nombre</label>
+        <input id="reg-name" data-reg-name type="text" autocomplete="name" required maxlength="40"
+          class="w-full rounded-lg border border-[var(--aw-color-border)] bg-[var(--aw-color-bg-page)] px-3.5 py-2.5 text-default outline-none focus:border-[var(--aw-color-primary)]"
+          placeholder="Tu nombre" />
+      </div>
+      <div>
+        <label class="block text-[0.82rem] text-muted mb-1.5" for="reg-email">Email</label>
+        <input id="reg-email" data-reg-email type="email" autocomplete="email" required
+          class="w-full rounded-lg border border-[var(--aw-color-border)] bg-[var(--aw-color-bg-page)] px-3.5 py-2.5 text-default outline-none focus:border-[var(--aw-color-primary)]"
+          placeholder="vos@ejemplo.com" />
+      </div>
+      <div>
+        <label class="block text-[0.82rem] text-muted mb-1.5" for="reg-pass">Contraseña</label>
+        <input id="reg-pass" data-reg-pass type="password" autocomplete="new-password" required minlength="6"
+          class="w-full rounded-lg border border-[var(--aw-color-border)] bg-[var(--aw-color-bg-page)] px-3.5 py-2.5 text-default outline-none focus:border-[var(--aw-color-primary)]"
+          placeholder="Al menos 6 caracteres" />
+      </div>
+
+      <label class="flex items-start gap-2 text-[0.8rem] text-muted">
+        <input type="checkbox" data-reg-migrate checked class="mt-0.5 accent-[var(--aw-color-primary)]" />
+        <span>Llevar a mi cuenta el progreso que ya hice como invitado.</span>
+      </label>
+
+      <p class="text-[0.82rem] text-red-500" data-reg-error hidden></p>
+
+      <button type="submit" data-reg-submit class="btn-primary w-full">
+        Crear cuenta
+        <Icon name="tabler:arrow-right" class="w-4 h-4 ml-1.5 inline-block" />
+      </button>
+    </form>
+
+    <p class="text-center text-[0.88rem] text-muted mt-5">
+      ¿Ya tenés cuenta? <a href="/entrar" class="text-primary hover:underline">Iniciá sesión</a>
+    </p>
+    <p class="text-center text-[0.74rem] text-[var(--aw-color-text-tertiary)] mt-6 leading-relaxed">
+      <Icon name="tabler:lock" class="w-3.5 h-3.5 inline-block" />
+      Tu cuenta es local y privada: vive en este navegador, la contraseña se guarda cifrada y nunca sale de tu equipo.
+    </p>
+  </section>
+</Layout>
+
+<script>
+  import { register, validate } from '~/lib/auth';
+
+  function setup() {
+    const form = document.querySelector<HTMLFormElement>('[data-reg-form]');
+    if (!form) return;
+    const err = document.querySelector<HTMLElement>('[data-reg-error]');
+    const submit = document.querySelector<HTMLButtonElement>('[data-reg-submit]');
+
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      if (err) err.hidden = true;
+      const name = (document.querySelector<HTMLInputElement>('[data-reg-name]')?.value || '').trim();
+      const email = (document.querySelector<HTMLInputElement>('[data-reg-email]')?.value || '').trim();
+      const pass = document.querySelector<HTMLInputElement>('[data-reg-pass]')?.value || '';
+      const migrate = document.querySelector<HTMLInputElement>('[data-reg-migrate]')?.checked ?? true;
+
+      const v = validate(name, email, pass);
+      if (v) {
+        if (err) { err.textContent = v; err.hidden = false; }
+        return;
+      }
+      if (submit) { submit.disabled = true; submit.textContent = 'Creando…'; }
+      const res = await register(name, email, pass, { migrateGuest: migrate });
+      if (res.ok) {
+        location.href = '/progreso';
+      } else {
+        if (err) { err.textContent = res.error; err.hidden = false; }
+        if (submit) { submit.disabled = false; submit.textContent = 'Crear cuenta'; }
+      }
+    });
+  }
+  document.addEventListener('astro:page-load', setup);
+  if (document.readyState !== 'loading') setup();
+  else document.addEventListener('DOMContentLoaded', setup);
+</script>

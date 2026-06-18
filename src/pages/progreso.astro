@@ -224,6 +224,7 @@ const json = JSON.stringify(payload).replace(/</g, '\\u003c');
 </Layout>
 
 <script>
+  import { currentUser } from '~/lib/auth';
   import {
     getLevelInfo,
     getXp,
@@ -258,9 +259,10 @@ const json = JSON.stringify(payload).replace(/</g, '\\u003c');
     // ── Encabezado / stats ────────────────────────────────────
     const li = getLevelInfo();
     const st = liveStreak();
-    const profile = getProfile();
+    const user = currentUser();
+    const name = user?.name || getProfile().name;
     const greet = $('[data-pg-greeting]');
-    if (greet) greet.textContent = profile.name ? `Hola, ${profile.name} 👋` : 'Hola 👋';
+    if (greet) greet.textContent = name ? `Hola, ${name} 👋` : 'Hola 👋';
     setText('[data-pg-level]', String(li.level));
     setText('[data-pg-rank]', li.rank);
     setText('[data-pg-xp]', String(getXp()));

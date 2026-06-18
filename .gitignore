@@ -12,3 +12,9 @@ pnpm-debug.log*
 .env.production
 # macOS
 .DS_Store
+# playwright
+test-results/
+playwright-report/
+.playwright/
+blob-report/
+playwright/.cache/
