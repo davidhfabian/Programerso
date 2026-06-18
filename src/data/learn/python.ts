@@ -368,5 +368,149 @@ export const pythonCourse: Course = {
         },
       ],
     },
+    {
+      title: 'Leer, depurar y crear',
+      description: 'Más allá de escribir: entender qué hace el código, cazar errores y resolver retos.',
+      lessons: [
+        {
+          slug: 'leer-codigo',
+          title: 'Leer y predecir',
+          summary: 'Adelantá qué imprime cada programa antes de ejecutarlo.',
+          minutes: 7,
+          tags: ['leer', 'python'],
+          glossary: ['operador', 'lista', 'metodo'],
+          intro:
+            '<p>Leer código es tan importante como escribirlo. Si podés <strong>predecir la salida</strong> con sólo mirarlo, lo entendés de verdad.</p>',
+          steps: [
+            {
+              kind: 'predict',
+              instruction: '¿Qué imprime?',
+              explanation: '<code>+=</code> suma al valor que ya tenía la [[variable]].',
+              code: 'x = 5\nx += 3\nprint(x)',
+              choices: [
+                { text: '<pre>8</pre>', correct: true, feedback: '5 + 3 = 8.' },
+                { text: '<pre>53</pre>', feedback: 'Son números, no texto: se suman.' },
+                { text: '<pre>5</pre>', feedback: 'x += 3 cambió el valor a 8.' },
+              ],
+            },
+            {
+              kind: 'predict',
+              instruction: '¿Qué imprime?',
+              explanation: 'El [[metodo|método]] <code>.join()</code> une los elementos con el separador.',
+              code: 'print("-".join(["a", "b", "c"]))',
+              choices: [
+                { text: '<pre>a-b-c</pre>', correct: true, feedback: 'join une con guiones.' },
+                { text: '<pre>["a","b","c"]</pre>', feedback: 'join devuelve un string, no la lista.' },
+                { text: '<pre>abc</pre>', feedback: 'Mirá: el separador es "-".' },
+              ],
+            },
+            {
+              kind: 'predict',
+              instruction: 'Escribí la salida exacta',
+              explanation: '<code>len()</code> cuenta los caracteres de un [[string]].',
+              code: 'print(len("programar"))',
+              expectedOutput: '9',
+              hint: 'Contá las letras de "programar".',
+            },
+            {
+              kind: 'predict',
+              instruction: '¿Qué imprime?',
+              explanation: 'Una <strong>comprensión de lista</strong> transforma cada elemento en una [[lista]] nueva.',
+              code: 'nums = [1, 2, 3]\nprint([n * 2 for n in nums])',
+              choices: [
+                { text: '<pre>[2, 4, 6]</pre>', correct: true, feedback: 'Cada número se multiplicó por 2.' },
+                { text: '<pre>[1, 2, 3]</pre>', feedback: 'La comprensión crea una lista transformada.' },
+                { text: '<pre>12</pre>', feedback: 'No suma; devuelve la lista transformada.' },
+              ],
+            },
+          ],
+        },
+        {
+          slug: 'arreglar-bugs',
+          title: 'Arreglar bugs',
+          summary: 'Programas que casi funcionan. Encontrá el error y corregilo.',
+          minutes: 9,
+          tags: ['depurar', 'python'],
+          glossary: ['bug', 'depurar', 'operador'],
+          intro:
+            '<p>Depurar es comparar lo que el código <strong>hace</strong> con lo que <strong>debería hacer</strong>. Editá el código y tocá <strong>Comprobar</strong>.</p>',
+          steps: [
+            {
+              kind: 'fix',
+              instruction: 'mayor(3, 8) debería devolver 8',
+              explanation: 'La función quiere el más grande de dos números, pero usa el [[operador]] al revés.',
+              buggyCode: 'def mayor(a, b):\n    return a if a < b else b\n\nprint(mayor(3, 8))',
+              expectedOutput: '8',
+              hint: 'Pensá: ¿la condición elige el mayor? Probá con a > b.',
+              referenceSolution: 'def mayor(a, b):\n    return a if a > b else b\n\nprint(mayor(3, 8))',
+            },
+            {
+              kind: 'fix',
+              instruction: 'La suma del 1 al 10 debería ser 55',
+              explanation: 'Error <strong>"por uno"</strong>: <code>range(1, 10)</code> llega sólo hasta el 9.',
+              buggyCode: 'total = 0\nfor i in range(1, 10):\n    total += i\nprint(total)',
+              expectedOutput: '55',
+              hint: 'range(1, 10) es 1..9. Necesitás range(1, 11) para incluir el 10.',
+              referenceSolution: 'total = 0\nfor i in range(1, 11):\n    total += i\nprint(total)',
+            },
+            {
+              kind: 'fix',
+              instruction: 'Debería imprimir "Total: 8"',
+              explanation:
+                'Para pegar un número a un texto hay que convertirlo con <code>str()</code>. Acá se convierten por separado y quedan pegados como "53" en vez de sumarse.',
+              buggyCode: 'print("Total: " + str(5) + str(3))',
+              expectedOutput: 'Total: 8',
+              hint: 'Sumá primero y convertí el resultado: str(5 + 3).',
+              referenceSolution: 'print("Total: " + str(5 + 3))',
+              reveal: 'Primero la cuenta (5 + 3 = 8) y después convertís a texto con str().',
+            },
+          ],
+        },
+        {
+          slug: 'tu-reto',
+          title: 'Tus primeros retos',
+          summary: 'Escribí tus propias soluciones, validadas al ejecutarlas.',
+          minutes: 10,
+          tags: ['crear', 'python'],
+          glossary: ['funcion', 'retornar', 'lista'],
+          intro:
+            '<p>Hora de crear desde cero. Escribí la solución completa y tocá <strong>Comprobar</strong>: tu código se ejecuta y se valida contra varias pruebas.</p>',
+          steps: [
+            {
+              kind: 'challenge',
+              instruction: 'Escribí es_par(n): devuelve True si n es par',
+              explanation:
+                'Completá la [[funcion|función]] para que <code>es_par(4)</code> dé <code>True</code> y <code>es_par(7)</code> dé <code>False</code>. Un número es par si <code>n % 2 == 0</code>.',
+              starter: 'def es_par(n):\n    # devolvé True o False\n    pass\n\nprint(es_par(4))\nprint(es_par(7))',
+              checks: [{ type: 'equals', value: 'True\nFalse', label: 'es_par(4)=True y es_par(7)=False' }],
+              referenceSolution: 'def es_par(n):\n    return n % 2 == 0\n\nprint(es_par(4))\nprint(es_par(7))',
+              hint: 'return n % 2 == 0',
+            },
+            {
+              kind: 'challenge',
+              instruction: 'Escribí sumar_lista(xs): suma todos los números',
+              explanation:
+                'Recibe una [[lista]] y [[retornar|devuelve]] la suma de sus elementos. <code>sumar_lista([1, 2, 3, 4])</code> debe dar <code>10</code>.',
+              starter: 'def sumar_lista(xs):\n    # recorré y sumá\n    pass\n\nprint(sumar_lista([1, 2, 3, 4]))',
+              checks: [{ type: 'equals', value: '10', label: 'sumar_lista([1,2,3,4]) imprime 10' }],
+              referenceSolution:
+                'def sumar_lista(xs):\n    total = 0\n    for n in xs:\n        total += n\n    return total\n\nprint(sumar_lista([1, 2, 3, 4]))',
+              hint: 'Empezá en 0 y sumá cada elemento con un for. O usá sum(xs).',
+            },
+            {
+              kind: 'challenge',
+              instruction: 'Escribí mayor_de(xs): el número más grande',
+              explanation:
+                'Devolvé el elemento más grande. <code>mayor_de([3, 9, 2])</code> debe dar <code>9</code>. Pista: existe <code>max()</code>.',
+              starter: 'def mayor_de(xs):\n    # devolvé el mayor\n    pass\n\nprint(mayor_de([3, 9, 2]))',
+              checks: [{ type: 'equals', value: '9', label: 'mayor_de([3,9,2]) imprime 9' }],
+              referenceSolution: 'def mayor_de(xs):\n    return max(xs)\n\nprint(mayor_de([3, 9, 2]))',
+              hint: 'return max(xs)',
+              reveal: '¡Listo! Ya escribís funciones propias y las validás ejecutándolas. Eso es programar.',
+            },
+          ],
+        },
+      ],
+    },
   ],
 };

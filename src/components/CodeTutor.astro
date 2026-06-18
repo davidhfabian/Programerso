@@ -883,6 +883,7 @@ const fileExt = language === 'python' ? 'py' : language === 'javascript' ? 'js' 
 <script>
   import { runJs, runPy, normalizeOutput, evaluateChecks } from '../lib/runner';
   import type { Check } from '../lib/runner';
+  import { highlight } from '../lib/highlight';
   import {
     addXp,
     XP,
@@ -1030,7 +1031,7 @@ const fileExt = language === 'python' ? 'py' : language === 'javascript' ? 'js' 
         ln.textContent = String(i + 1);
         const code = document.createElement('span');
         code.className = 'ct-line-code';
-        code.textContent = line;
+        setHTML(code, highlight(line, data.language));
         const chk = document.createElement('span');
         chk.className = 'ct-line-check';
         chk.textContent = '✓';
@@ -1157,7 +1158,7 @@ const fileExt = language === 'python' ? 'py' : language === 'javascript' ? 'js' 
     function loadInfoStep(step: Step) {
       if (step.code) {
         readonlyEl.hidden = false;
-        readonlyEl.textContent = step.code;
+        setHTML(readonlyEl, highlight(step.code, data.language));
       }
       primaryBtn.textContent = current + 1 >= data.steps.length ? 'Terminar' : 'Entendido';
       primaryBtn.focus();
@@ -1167,7 +1168,7 @@ const fileExt = language === 'python' ? 'py' : language === 'javascript' ? 'js' 
     function loadChoiceStep(step: Step, mode: 'quiz' | 'predict') {
       if (mode === 'predict' && step.code) {
         readonlyEl.hidden = false;
-        readonlyEl.textContent = step.code;
+        setHTML(readonlyEl, highlight(step.code, data.language));
         setMutedOutput('// ¿qué imprime? elegí una opción');
       }
       choicesEl.hidden = false;
@@ -1220,7 +1221,7 @@ const fileExt = language === 'python' ? 'py' : language === 'javascript' ? 'js' 
       }
       if (step.code) {
         readonlyEl.hidden = false;
-        readonlyEl.textContent = step.code;
+        setHTML(readonlyEl, highlight(step.code, data.language));
       }
       predictEl.hidden = false;
       predictInput.value = '';

@@ -409,5 +409,152 @@ export const javascriptCourse: Course = {
         },
       ],
     },
+    {
+      title: 'Leer, depurar y crear',
+      description: 'Más allá de escribir: entender qué hace el código, cazar errores y resolver retos.',
+      lessons: [
+        {
+          slug: 'leer-codigo',
+          title: 'Leer y predecir',
+          summary: 'Adelantá qué imprime cada programa antes de ejecutarlo.',
+          minutes: 7,
+          tags: ['leer', 'javascript'],
+          glossary: ['operador', 'array', 'metodo'],
+          intro:
+            '<p>Leer código es tan importante como escribirlo. Si podés <strong>predecir la salida</strong> de un programa con sólo mirarlo, lo entendés de verdad.</p>',
+          steps: [
+            {
+              kind: 'predict',
+              instruction: '¿Qué imprime?',
+              explanation: '<code>+=</code> suma al valor que ya tenía la [[variable|variable]].',
+              code: 'let x = 5;\nx += 3;\nconsole.log(x);',
+              choices: [
+                { text: '<pre>8</pre>', correct: true, feedback: '5 + 3 = 8.' },
+                { text: '<pre>53</pre>', feedback: 'Eso sería si concatenara texto; acá son números.' },
+                { text: '<pre>5</pre>', feedback: 'x += 3 cambió el valor a 8.' },
+              ],
+            },
+            {
+              kind: 'predict',
+              instruction: '¿Qué imprime?',
+              explanation: 'El [[metodo|método]] <code>.join()</code> une los elementos con el separador que le pases.',
+              code: 'console.log([1, 2, 3].join("-"));',
+              choices: [
+                { text: '<pre>1-2-3</pre>', correct: true, feedback: 'join une con guiones.' },
+                { text: '<pre>[1,2,3]</pre>', feedback: 'join devuelve un string, no el array.' },
+                { text: '<pre>6</pre>', feedback: 'No suma; concatena con el separador.' },
+              ],
+            },
+            {
+              kind: 'predict',
+              instruction: 'Escribí la salida exacta',
+              explanation: '<code>.length</code> cuenta los caracteres de un [[string]].',
+              code: 'console.log("programar".length);',
+              expectedOutput: '9',
+              hint: 'Contá las letras de "programar".',
+            },
+            {
+              kind: 'predict',
+              instruction: '¿Qué imprime?',
+              explanation: '<code>.map()</code> transforma cada elemento y devuelve un nuevo [[array]].',
+              code: 'const nums = [1, 2, 3];\nconsole.log(nums.map((n) => n * 2));',
+              choices: [
+                { text: '<pre>[2,4,6]</pre>', correct: true, feedback: 'Cada número se multiplicó por 2.' },
+                { text: '<pre>[1,2,3]</pre>', feedback: 'map crea un array nuevo transformado.' },
+                { text: '<pre>12</pre>', feedback: 'map no suma; devuelve la lista transformada.' },
+              ],
+            },
+          ],
+        },
+        {
+          slug: 'arreglar-bugs',
+          title: 'Arreglar bugs',
+          summary: 'Programas que casi funcionan. Encontrá el error y corregilo.',
+          minutes: 9,
+          tags: ['depurar', 'javascript'],
+          glossary: ['bug', 'depurar', 'operador'],
+          intro:
+            '<p>Depurar es comparar lo que el código <strong>hace</strong> con lo que <strong>debería hacer</strong>. Editá el código y tocá <strong>Comprobar</strong>.</p>',
+          steps: [
+            {
+              kind: 'fix',
+              instruction: 'mayor(3, 8) debería devolver 8',
+              explanation: 'La función quiere devolver el más grande de dos números, pero usa el [[operador]] al revés.',
+              buggyCode: 'function mayor(a, b) {\n  return a < b ? a : b;\n}\nconsole.log(mayor(3, 8));',
+              expectedOutput: '8',
+              hint: 'Pensá: ¿la condición elige el mayor? Probá con a > b.',
+              referenceSolution: 'function mayor(a, b) {\n  return a > b ? a : b;\n}\nconsole.log(mayor(3, 8));',
+              reveal: 'Truco para leer: probá la función con valores donde ya sabés la respuesta.',
+            },
+            {
+              kind: 'fix',
+              instruction: 'La suma del 1 al 10 debería ser 55',
+              explanation: 'Un clásico error <strong>"por uno"</strong>: el bucle corta una vuelta antes de tiempo.',
+              buggyCode: 'let suma = 0;\nfor (let i = 1; i < 10; i++) {\n  suma += i;\n}\nconsole.log(suma);',
+              expectedOutput: '55',
+              hint: 'Con i < 10 llega hasta 9. Necesitás i <= 10.',
+              referenceSolution: 'let suma = 0;\nfor (let i = 1; i <= 10; i++) {\n  suma += i;\n}\nconsole.log(suma);',
+            },
+            {
+              kind: 'fix',
+              instruction: 'Debería imprimir "Total: 8"',
+              explanation:
+                'El <code>+</code> con texto <strong>concatena</strong>. Mezclar texto y suma sin cuidado da un resultado raro: hay que agrupar la cuenta con paréntesis.',
+              buggyCode: 'console.log("Total: " + 5 + 3);',
+              expectedOutput: 'Total: 8',
+              hint: 'Sin paréntesis, "Total: " + 5 ya es texto, y + 3 lo pega. Agrupá (5 + 3).',
+              referenceSolution: 'console.log("Total: " + (5 + 3));',
+              reveal: 'Con texto, <code>+</code> pega. Los paréntesis hacen que primero se sume y después se concatene.',
+            },
+          ],
+        },
+        {
+          slug: 'tu-reto',
+          title: 'Tus primeros retos',
+          summary: 'Escribí tus propias soluciones, validadas al ejecutarlas.',
+          minutes: 10,
+          tags: ['crear', 'javascript'],
+          glossary: ['funcion', 'retornar', 'array'],
+          intro:
+            '<p>Hora de crear desde cero. Escribí la solución completa y tocá <strong>Comprobar</strong>: tu código se ejecuta y se valida contra varias pruebas.</p>',
+          steps: [
+            {
+              kind: 'challenge',
+              instruction: 'Escribí esPar(n): devuelve true si n es par',
+              explanation:
+                'Completá la [[funcion|función]] para que <code>esPar(4)</code> dé <code>true</code> y <code>esPar(7)</code> dé <code>false</code>. Un número es par si el resto de dividirlo por 2 es 0 (<code>n % 2 === 0</code>).',
+              starter: 'function esPar(n) {\n  // devolvé true o false\n}\nconsole.log(esPar(4));\nconsole.log(esPar(7));',
+              checks: [{ type: 'equals', value: 'true\nfalse', label: 'esPar(4)=true y esPar(7)=false' }],
+              referenceSolution:
+                'function esPar(n) {\n  return n % 2 === 0;\n}\nconsole.log(esPar(4));\nconsole.log(esPar(7));',
+              hint: 'return n % 2 === 0;',
+            },
+            {
+              kind: 'challenge',
+              instruction: 'Escribí sumarLista(xs): suma todos los números',
+              explanation:
+                'La función recibe un [[array]] y debe [[retornar|devolver]] la suma de sus elementos. <code>sumarLista([1, 2, 3, 4])</code> debe dar <code>10</code>.',
+              starter:
+                'function sumarLista(xs) {\n  // recorré y sumá\n}\nconsole.log(sumarLista([1, 2, 3, 4]));',
+              checks: [{ type: 'equals', value: '10', label: 'sumarLista([1,2,3,4]) imprime 10' }],
+              referenceSolution:
+                'function sumarLista(xs) {\n  let total = 0;\n  for (const n of xs) {\n    total += n;\n  }\n  return total;\n}\nconsole.log(sumarLista([1, 2, 3, 4]));',
+              hint: 'Empezá en 0 y sumá cada elemento con un for...of.',
+            },
+            {
+              kind: 'challenge',
+              instruction: 'Escribí mayorDe(xs): el número más grande',
+              explanation:
+                'Devolvé el elemento más grande del array. <code>mayorDe([3, 9, 2])</code> debe dar <code>9</code>. Pista: <code>Math.max(...xs)</code> expande la lista.',
+              starter: 'function mayorDe(xs) {\n  // devolvé el mayor\n}\nconsole.log(mayorDe([3, 9, 2]));',
+              checks: [{ type: 'equals', value: '9', label: 'mayorDe([3,9,2]) imprime 9' }],
+              referenceSolution: 'function mayorDe(xs) {\n  return Math.max(...xs);\n}\nconsole.log(mayorDe([3, 9, 2]));',
+              hint: 'return Math.max(...xs);',
+              reveal: '¡Listo! Ya escribís funciones propias y las validás ejecutándolas. Eso es programar.',
+            },
+          ],
+        },
+      ],
+    },
   ],
 };

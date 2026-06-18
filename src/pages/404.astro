@@ -1,0 +1,45 @@
+---
+export const prerender = true;
+import Layout from '~/layouts/Layout.astro';
+import { Icon } from 'astro-icon/components';
+import { courses } from '~/data/learn';
+---
+
+<Layout title="Página no encontrada (404)" description="Esta página no existe. Volvé a aprender.">
+  <section class="max-w-2xl mx-auto px-4 sm:px-6 pt-24 md:pt-32 pb-24 text-center">
+    <p class="font-mono text-6xl md:text-7xl font-semibold text-primary mb-4">404</p>
+    <h1 class="font-heading text-2xl md:text-3xl font-semibold tracking-tight text-default mb-3">
+      Esta página no existe
+    </h1>
+    <p class="text-muted leading-relaxed mb-8">
+      El enlace puede estar roto o la página se movió. Probá con el buscador
+      (<kbd class="font-mono text-[0.7rem] border border-[var(--aw-color-border-hover)] rounded px-1.5 py-0.5">⌘K</kbd>)
+      o seguí con un curso.
+    </p>
+    <div class="flex flex-wrap items-center justify-center gap-3 mb-12">
+      <a href="/" class="btn-primary">
+        <Icon name="tabler:books" class="w-4 h-4 mr-1.5 inline-block" /> Ver los cursos
+      </a>
+      <button
+        type="button"
+        data-cmdk-open
+        class="inline-flex items-center gap-2 text-sm rounded-lg border border-[var(--aw-color-border)] hover:border-[var(--aw-color-border-hover)] px-5 py-3 text-default transition-colors"
+      >
+        <Icon name="tabler:search" class="w-4 h-4" /> Buscar
+      </button>
+    </div>
+    <div class="grid sm:grid-cols-3 gap-3">
+      {
+        courses.map((course) => (
+          <a
+            href={`/${course.slug}`}
+            class="rounded-xl border border-[var(--aw-color-border)] bg-[var(--aw-color-bg-surface)] p-4 hover:border-[var(--aw-color-border-hover)] transition-colors"
+          >
+            <Icon name={course.icon} class="w-6 h-6 text-primary mb-2" />
+            <div class="text-sm font-semibold text-default">{course.title}</div>
+          </a>
+        ))
+      }
+    </div>
+  </section>
+</Layout>

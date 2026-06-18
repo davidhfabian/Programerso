@@ -1,9 +1,12 @@
 // Verificador de contenido ejecutable. Corre la solución de referencia (o el
-// código mostrado) de cada paso runnable del curso de IA y comprueba que su
-// salida coincide con lo esperado / los checks. Atrapa ejercicios irresolvibles.
+// código mostrado) de cada paso runnable de los cursos en JavaScript y comprueba
+// que su salida coincide con lo esperado / los checks. Atrapa ejercicios
+// irresolvibles. (Los pasos de Python se verifican aparte con python3.)
 //
 // Uso: node --experimental-strip-types scripts/verify-content.mjs
 import { iaCourse } from '../src/data/learn/ia.ts';
+import { javascriptCourse } from '../src/data/learn/javascript.ts';
+const courses = [iaCourse, javascriptCourse];
 
 // ── Mini-runner JS (espejo de src/lib/runner.ts, sin DOM) ────────
 const FunctionCtor = Function;
@@ -56,13 +59,15 @@ function evaluateChecks(output, checks) {
 
 const stripTags = (s) => s.replace(/<[^>]+>/g, '').trim();
 
-// ── Recorrer el curso ────────────────────────────────────────────
+// ── Recorrer los cursos en JavaScript ────────────────────────────
 let problems = 0;
 let checked = 0;
-for (const mod of iaCourse.modules) {
-  for (const lesson of mod.lessons) {
-    lesson.steps.forEach((step, i) => {
-      const where = `${lesson.slug} · paso ${i + 1} (${step.kind})`;
+const jsCourses = courses.filter((c) => c.language === 'javascript');
+for (const course of jsCourses) {
+  for (const mod of course.modules) {
+    for (const lesson of mod.lessons) {
+      lesson.steps.forEach((step, i) => {
+        const where = `${course.slug}/${lesson.slug} · paso ${i + 1} (${step.kind})`;
 
       if (step.kind === 'predict' && step.code) {
         const res = runJs(step.code);
@@ -133,8 +138,9 @@ for (const mod of iaCourse.modules) {
             problems++;
           }
         }
-      }
-    });
+        }
+      });
+    }
   }
 }
 

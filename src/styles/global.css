@@ -89,6 +89,36 @@
   kbd {
     font-family: var(--font-geist-mono);
   }
+
+  /* Tokens de resaltado de sintaxis (sobrios, acordes al tema) */
+  .tok-kw {
+    color: var(--aw-color-primary);
+  }
+  .tok-str {
+    color: #2f7d4f;
+  }
+  .tok-num {
+    color: #9a6a2f;
+  }
+  .tok-fn {
+    color: #2f5fa0;
+  }
+  .tok-com {
+    color: var(--aw-color-text-tertiary);
+    font-style: italic;
+  }
+  .tok-punct {
+    color: var(--aw-color-text-muted);
+  }
+  .dark .tok-str {
+    color: #84b59a;
+  }
+  .dark .tok-num {
+    color: #cfa06a;
+  }
+  .dark .tok-fn {
+    color: #8fb2e0;
+  }
 }
 
 @layer components {
