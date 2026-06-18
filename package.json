@@ -20,6 +20,7 @@
   "devDependencies": {
     "@astrojs/check": "^0.9.4",
     "@iconify-json/tabler": "^1.2.20",
+    "@playwright/test": "^1.61.0",
     "typescript": "^5.8.3"
   }
 }

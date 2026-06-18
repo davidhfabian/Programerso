@@ -73,7 +73,7 @@ const fileExt = language === 'python' ? 'py' : language === 'javascript' ? 'js' 
 >
   <script type="application/json" data-ct-data is:inline set:html={json} />
 
-  <div class="ct-grid">
+  <div class="ct-grid" data-ct-grid>
     {/* ── Panel guía ───────────────────────────────────────────── */}
     <aside class="ct-guide">
       <div class="ct-progress">
@@ -125,7 +125,7 @@ const fileExt = language === 'python' ? 'py' : language === 'javascript' ? 'js' 
     </aside>
 
     {/* ── Editor + consola ─────────────────────────────────────── */}
-    <div class="ct-editor">
+    <div class="ct-editor" data-ct-editor>
       <div class="ct-toolbar">
         <span class="ct-dots" aria-hidden="true"><span></span><span></span><span></span></span>
         <span class="ct-runtime font-mono" data-ct-runtime>{runtimeLabel} · lección.{fileExt}</span>
@@ -207,6 +207,13 @@ const fileExt = language === 'python' ? 'py' : language === 'javascript' ? 'js' 
     border-radius: 14px;
     background: var(--aw-color-bg-surface);
     overflow: hidden;
+    transition: max-width 0.25s ease;
+  }
+  /* Modo lectura: tarjeta más angosta y centrada para concentrar la atención. */
+  .ct.ct-reading {
+    max-width: 780px;
+    margin-inline: auto;
+    background: var(--aw-color-bg-page);
   }
 
   .ct-grid {
@@ -214,9 +221,18 @@ const fileExt = language === 'python' ? 'py' : language === 'javascript' ? 'js' 
     grid-template-columns: 1fr;
   }
   @media (min-width: 900px) {
-    .ct-grid {
+    .ct-grid:not(.is-single) {
       grid-template-columns: minmax(0, 0.92fr) minmax(0, 1.08fr);
     }
+  }
+  /* Modo lectura/quiz: una sola columna, centrada y enfocada (sin IDE). */
+  .ct-grid.is-single .ct-guide {
+    border-right: none;
+    max-width: 680px;
+    width: 100%;
+    margin-inline: auto;
+    padding-top: 1.75rem;
+    padding-bottom: 1.75rem;
   }
 
   /* ── Guía ─────────────────────────────────────────────────── */
@@ -1122,6 +1138,22 @@ const fileExt = language === 'python' ? 'py' : language === 'javascript' ? 'js' 
     const tipEl = $('[data-ct-tip]')!;
     const tipTerm = $('[data-ct-tip-term]')!;
     const tipDef = $('[data-ct-tip-def]')!;
+    const gridEl = $('[data-ct-grid]')!;
+    const editorPanel = $('[data-ct-editor]')!;
+
+    // ¿Este paso requiere mostrar el editor/consola? Si no, la lección va a
+    // columna única, enfocada (sin IDE). Concepto y quiz NO muestran el IDE.
+    function needsCode(step: Step): boolean {
+      if (step.kind === 'type' || step.kind === 'fix' || step.kind === 'challenge') return true;
+      if ((step.kind === 'predict' || step.kind === 'info') && !!step.code) return true;
+      return false;
+    }
+    function applyLayout(step: Step) {
+      const show = needsCode(step);
+      editorPanel.hidden = !show;
+      gridEl.classList.toggle('is-single', !show);
+      root.classList.toggle('ct-reading', !show);
+    }
 
     const accepted: string[] = [];
     let current = 0;
@@ -1248,6 +1280,7 @@ const fileExt = language === 'python' ? 'py' : language === 'javascript' ? 'js' 
       hintBtn.hidden = !step.hint;
       primaryBtn.disabled = false;
       updateProgress();
+      applyLayout(step);
 
       if (step.kind === 'type') loadTypeStep(step);
       else if (step.kind === 'info') loadInfoStep(step);
@@ -1552,9 +1585,13 @@ const fileExt = language === 'python' ? 'py' : language === 'javascript' ? 'js' 
       predictEl.hidden = true;
       instructionEl.textContent = '¡Lección completada!';
       kindBadge.hidden = true;
+      const hasCode = data.runnable && accepted.length > 0;
+      editorPanel.hidden = !hasCode;
+      gridEl.classList.toggle('is-single', !hasCode);
+      root.classList.toggle('ct-reading', !hasCode);
       setHTML(
         explanationEl,
-        data.runnable
+        hasCode
           ? 'Repasá tu trabajo a la derecha. Podés editar y volver a ejecutar con <strong>Ejecutar</strong>.'
           : 'Buen trabajo. Avanzá a la próxima lección cuando quieras.'
       );
@@ -1571,7 +1608,7 @@ const fileExt = language === 'python' ? 'py' : language === 'javascript' ? 'js' 
         ? `+${XP.lessonBonus} XP de bonus · Nivel ${li2.level} · ${li2.rank}`
         : `Ya la habías completado. Nivel ${li2.level} · ${li2.rank}`;
       doneEl.hidden = false;
-      if (data.runnable && accepted.length) {
+      if (hasCode) {
         runBtn.hidden = false;
         makeEditable();
         runProgram(data.language, accepted.join('\n')).then(setOutput);

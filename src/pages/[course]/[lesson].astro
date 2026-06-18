@@ -22,6 +22,9 @@ if (!course || !lesson) return Astro.redirect('/');
 const { prev, next } = getAdjacentLessons(course, lesson.slug);
 const all = flattenLessons(course);
 const lessonIndex = all.findIndex((l) => l.slug === lesson.slug);
+
+// ¿La lección tiene pasos de tipeo guiado? Sólo entonces aplica la pista de teclado.
+const hasTyping = lesson.steps.some((s) => (s.kind ?? 'type') === 'type');
 ---
 
 <Layout title={`${lesson.title} · ${course.title}`} description={lesson.summary}>
@@ -56,11 +59,15 @@ const lessonIndex = all.findIndex((l) => l.slug === lesson.slug);
       nextHref={next ? `/${course.slug}/${next.slug}` : `/${course.slug}`}
     />
 
-    <p class="mt-4 flex flex-wrap items-center gap-2 text-[0.78rem] text-[var(--aw-color-text-tertiary)]">
-      <Icon name="tabler:keyboard" class="w-4 h-4" />
-      Escribí con ayuda del autocompletado · <kbd class="ct-kbd">Tab</kbd> acepta la sugerencia ·
-      <kbd class="ct-kbd">Enter</kbd> comprueba
-    </p>
+    {
+      hasTyping && (
+        <p class="mt-4 flex flex-wrap items-center gap-2 text-[0.78rem] text-[var(--aw-color-text-tertiary)]">
+          <Icon name="tabler:keyboard" class="w-4 h-4" />
+          Escribí con ayuda del autocompletado · <kbd class="ct-kbd">Tab</kbd> acepta la sugerencia ·
+          <kbd class="ct-kbd">Enter</kbd> comprueba
+        </p>
+      )
+    }
 
     <!-- Navegación entre lecciones -->
     <nav class="mt-12 grid sm:grid-cols-2 gap-3" aria-label="Navegación de lecciones">
