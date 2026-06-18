@@ -2,6 +2,13 @@
 @tailwind components;
 @tailwind utilities;
 
+/* El atributo [hidden] debe ocultar SIEMPRE, aunque un componente fije `display`
+   (sin esto, overlays como el buscador ⌘K o el cartel de "lección completada"
+   quedarían visibles permanentemente). */
+[hidden] {
+  display: none !important;
+}
+
 /* Geist variable fonts (self-hosted) */
 @font-face {
   font-family: 'Geist Sans';

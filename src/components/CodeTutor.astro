@@ -880,6 +880,121 @@ const fileExt = language === 'python' ? 'py' : language === 'javascript' ? 'js' 
   }
 </style>
 
+<style is:global>
+  /* Estilos de elementos creados DINÁMICAMENTE por el motor (líneas de código,
+     opciones y checks). No reciben el atributo de scope de Astro, así que van
+     globales; todos con prefijo ct- para evitar colisiones. */
+  .ct-line {
+    display: flex;
+    align-items: flex-start;
+    white-space: pre;
+  }
+  .ct-ln {
+    flex: 0 0 2.4rem;
+    text-align: right;
+    padding-right: 0.85rem;
+    color: var(--aw-color-text-tertiary);
+    opacity: 0.55;
+    user-select: none;
+  }
+  .ct-line-code {
+    color: var(--aw-color-text-default);
+    white-space: pre;
+  }
+  .ct-line-check {
+    margin-left: 0.6rem;
+    color: var(--aw-color-primary);
+  }
+  .ct-choice {
+    width: 100%;
+    text-align: left;
+    font-size: 0.88rem;
+    line-height: 1.45;
+    color: var(--aw-color-text-default);
+    background: var(--aw-color-bg-page);
+    border: 1px solid var(--aw-color-border);
+    border-radius: 10px;
+    padding: 0.7rem 0.85rem;
+    cursor: pointer;
+    transition: all 0.15s ease;
+    display: flex;
+    align-items: flex-start;
+    gap: 0.6rem;
+  }
+  .ct-choice:hover:not(:disabled) {
+    border-color: var(--aw-color-border-hover);
+    transform: translateX(2px);
+  }
+  .ct-choice-key {
+    flex: 0 0 auto;
+    width: 1.4rem;
+    height: 1.4rem;
+    display: grid;
+    place-items: center;
+    border-radius: 6px;
+    border: 1px solid var(--aw-color-border);
+    font-family: var(--font-geist-mono);
+    font-size: 0.72rem;
+    color: var(--aw-color-text-tertiary);
+  }
+  .ct-choice.is-correct {
+    border-color: var(--turquoise-border);
+    background: var(--turquoise-bg);
+  }
+  .ct-choice.is-correct .ct-choice-key {
+    border-color: var(--turquoise-border);
+    color: var(--aw-color-primary);
+  }
+  .ct-choice.is-wrong {
+    border-color: rgba(239, 68, 68, 0.5);
+    background: rgba(239, 68, 68, 0.06);
+  }
+  .ct-choice.is-wrong .ct-choice-key {
+    border-color: rgba(239, 68, 68, 0.5);
+    color: #ef4444;
+  }
+  .ct-choice:disabled {
+    cursor: default;
+  }
+  .ct-choice pre {
+    margin: 0;
+    white-space: pre-wrap;
+  }
+  .ct-check {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.78rem;
+    color: var(--aw-color-text-muted);
+  }
+  .ct-check-mark {
+    flex: 0 0 auto;
+    width: 1.05rem;
+    height: 1.05rem;
+    display: grid;
+    place-items: center;
+    border-radius: 50%;
+    border: 1px solid var(--aw-color-border-hover);
+    font-size: 0.62rem;
+  }
+  .ct-check.is-pass {
+    color: var(--aw-color-text-default);
+  }
+  .ct-check.is-pass .ct-check-mark {
+    border-color: var(--turquoise-border);
+    color: var(--aw-color-primary);
+    background: var(--turquoise-bg);
+  }
+  .ct-check.is-fail .ct-check-mark {
+    color: var(--aw-color-text-tertiary);
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .ct-choice {
+      transition: none !important;
+    }
+  }
+</style>
+
 <script>
   import { runJs, runPy, normalizeOutput, evaluateChecks } from '../lib/runner';
   import type { Check } from '../lib/runner';
