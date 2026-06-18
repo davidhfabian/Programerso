@@ -1,0 +1,96 @@
+---
+export const prerender = true;
+import Layout from '~/layouts/Layout.astro';
+import { Icon } from 'astro-icon/components';
+---
+
+<Layout title="Ajustes" description="Personalizá tu experiencia de aprendizaje en Programerso.">
+  <section class="max-w-lg mx-auto px-4 sm:px-6 pt-12 md:pt-16 pb-20">
+    <p class="font-mono text-[0.72rem] uppercase tracking-[0.18em] text-[var(--aw-color-text-tertiary)] mb-2">Preferencias</p>
+    <h1 class="font-heading text-3xl font-semibold tracking-tight text-default mb-8">Ajustes</h1>
+
+    <div class="space-y-3">
+      {/* Tamaño de texto */}
+      <div class="rounded-2xl border border-[var(--aw-color-border)] bg-[var(--aw-color-bg-surface)] p-5">
+        <div class="flex items-center gap-2 mb-3">
+          <Icon name="tabler:cursor-text" class="w-4 h-4 text-primary" />
+          <h2 class="text-sm font-semibold text-default">Tamaño del texto</h2>
+        </div>
+        <div class="flex items-center gap-3">
+          <span class="text-[0.8rem] text-muted">A</span>
+          <input type="range" min="0.9" max="1.3" step="0.05" data-set-font class="flex-1 accent-[var(--aw-color-primary)]" />
+          <span class="text-base text-muted">A</span>
+          <span class="font-mono text-[0.78rem] text-default w-12 text-right" data-set-font-val>100%</span>
+        </div>
+      </div>
+
+      {/* Sonido */}
+      <label class="flex items-center justify-between gap-4 rounded-2xl border border-[var(--aw-color-border)] bg-[var(--aw-color-bg-surface)] p-5 cursor-pointer">
+        <div class="flex items-center gap-2">
+          <Icon name="tabler:bolt" class="w-4 h-4 text-primary" />
+          <div>
+            <h2 class="text-sm font-semibold text-default">Sonidos</h2>
+            <p class="text-[0.8rem] text-muted">Tonos suaves al acertar y subir de nivel.</p>
+          </div>
+        </div>
+        <input type="checkbox" data-set-sound class="w-5 h-5 accent-[var(--aw-color-primary)]" />
+      </label>
+
+      {/* Confetti / animaciones */}
+      <label class="flex items-center justify-between gap-4 rounded-2xl border border-[var(--aw-color-border)] bg-[var(--aw-color-bg-surface)] p-5 cursor-pointer">
+        <div class="flex items-center gap-2">
+          <Icon name="tabler:confetti" class="w-4 h-4 text-primary" />
+          <div>
+            <h2 class="text-sm font-semibold text-default">Menos animaciones</h2>
+            <p class="text-[0.8rem] text-muted">Desactiva el confetti de las celebraciones.</p>
+          </div>
+        </div>
+        <input type="checkbox" data-set-confetti class="w-5 h-5 accent-[var(--aw-color-primary)]" />
+      </label>
+    </div>
+
+    <p class="text-[0.8rem] text-[var(--aw-color-text-tertiary)] mt-6">
+      Tus preferencias se guardan en este navegador. <a href="/perfil" class="text-primary hover:underline">Ver mi perfil</a>.
+    </p>
+  </section>
+</Layout>
+
+<script>
+  import { getSettings, setSettings } from '~/lib/store';
+  import { playCorrect } from '~/lib/sound';
+
+  function setup() {
+    const fontInput = document.querySelector<HTMLInputElement>('[data-set-font]');
+    const fontVal = document.querySelector<HTMLElement>('[data-set-font-val]');
+    const soundInput = document.querySelector<HTMLInputElement>('[data-set-sound]');
+    const confettiInput = document.querySelector<HTMLInputElement>('[data-set-confetti]');
+    if (!fontInput) return;
+    const s = getSettings();
+
+    fontInput.value = String(s.fontScale);
+    if (fontVal) fontVal.textContent = `${Math.round(s.fontScale * 100)}%`;
+    if (soundInput) soundInput.checked = s.sound;
+    if (confettiInput) confettiInput.checked = s.reducedConfetti;
+
+    function applyFont(scale: number) {
+      document.documentElement.style.fontSize = `${Math.round(scale * 100)}%`;
+    }
+
+    fontInput.addEventListener('input', () => {
+      const scale = Number(fontInput.value);
+      if (fontVal) fontVal.textContent = `${Math.round(scale * 100)}%`;
+      applyFont(scale);
+      setSettings({ fontScale: scale });
+    });
+    soundInput?.addEventListener('change', () => {
+      setSettings({ sound: soundInput.checked });
+      if (soundInput.checked) playCorrect();
+    });
+    confettiInput?.addEventListener('change', () => {
+      setSettings({ reducedConfetti: confettiInput.checked });
+    });
+  }
+  document.addEventListener('astro:page-load', setup);
+  if (document.readyState !== 'loading') setup();
+  else document.addEventListener('DOMContentLoaded', setup);
+</script>

@@ -1015,6 +1015,7 @@ const fileExt = language === 'python' ? 'py' : language === 'javascript' ? 'js' 
   import { runJs, runPy, normalizeOutput, evaluateChecks } from '../lib/runner';
   import type { Check } from '../lib/runner';
   import { highlight } from '../lib/highlight';
+  import { playCorrect, playWrong } from '../lib/sound';
   import {
     addXp,
     XP,
@@ -1342,7 +1343,10 @@ const fileExt = language === 'python' ? 'py' : language === 'javascript' ? 'js' 
       if (answered) return;
       answered = true;
       const chosen = step.choices[idx];
-      if (!chosen.correct) wrongThisStep = true;
+      if (!chosen.correct) {
+        wrongThisStep = true;
+        playWrong();
+      }
       const btns = [...choicesEl.querySelectorAll<HTMLButtonElement>('.ct-choice')];
       btns.forEach((b, i) => {
         b.disabled = true;
@@ -1438,6 +1442,7 @@ const fileExt = language === 'python' ? 'py' : language === 'javascript' ? 'js' 
     function solveStep() {
       const step = data.steps[current];
       const gained = xpForKind(step.kind);
+      playCorrect();
       addXp(gained, `${step.kind}:${data.lessonSlug}`);
       if (current === 0) unlock('first-step');
       if (step.kind === 'fix') {
@@ -1483,6 +1488,7 @@ const fileExt = language === 'python' ? 'py' : language === 'javascript' ? 'js' 
           solveStep();
         } else {
           wrongThisStep = true;
+          playWrong();
           shake();
           hintEl.hidden = false;
         }

@@ -1,0 +1,261 @@
+---
+export const prerender = true;
+import Layout from '~/layouts/Layout.astro';
+import { Icon } from 'astro-icon/components';
+---
+
+<Layout title="Empezá acá" description="Armá tu ruta para aprender a programar desde cero en la era de la IA.">
+  <section class="max-w-2xl mx-auto px-4 sm:px-6 pt-12 md:pt-16 pb-24">
+    {/* Progreso del asistente */}
+    <div class="flex items-center gap-2 mb-8" data-ob-dots>
+      <span class="h-1.5 flex-1 rounded-full bg-primary transition-colors" data-ob-dot="0"></span>
+      <span class="h-1.5 flex-1 rounded-full bg-[var(--aw-color-border)] transition-colors" data-ob-dot="1"></span>
+      <span class="h-1.5 flex-1 rounded-full bg-[var(--aw-color-border)] transition-colors" data-ob-dot="2"></span>
+      <span class="h-1.5 flex-1 rounded-full bg-[var(--aw-color-border)] transition-colors" data-ob-dot="3"></span>
+    </div>
+
+    {/* Paso 0 — bienvenida */}
+    <div class="ob-step" data-ob-step="0">
+      <span class="inline-flex items-center gap-2 font-mono text-[0.7rem] uppercase tracking-[0.18em] text-primary mb-4">
+        <Icon name="tabler:sparkles" class="w-3.5 h-3.5" /> 2 minutos
+      </span>
+      <h1 class="font-heading text-3xl md:text-4xl font-semibold tracking-tight text-default mb-3">
+        Hola 👋 Vamos a armar tu ruta
+      </h1>
+      <p class="text-muted leading-relaxed mb-8 text-[1.02rem]">
+        No necesitás saber nada de programación. Te hacemos 3 preguntas rápidas y te dejamos un camino claro,
+        pensado para empezar de cero en la era de la IA.
+      </p>
+      <button type="button" class="btn-primary" data-ob-next>
+        Empezar <Icon name="tabler:arrow-right" class="w-4 h-4 ml-1.5 inline-block" />
+      </button>
+    </div>
+
+    {/* Paso 1 — experiencia */}
+    <div class="ob-step" data-ob-step="1" hidden>
+      <h2 class="font-heading text-2xl md:text-3xl font-semibold tracking-tight text-default mb-2">¿Programaste antes?</h2>
+      <p class="text-muted mb-6">Sin vergüenza: la mayoría empieza desde cero.</p>
+      <div class="grid sm:grid-cols-2 gap-3" data-ob-exp>
+        <button type="button" class="ob-card" data-val="cero">
+          <Icon name="tabler:seedling" class="w-6 h-6 text-primary mb-2" />
+          <span class="ob-card-title">Nunca</span>
+          <span class="ob-card-sub">Arranco de cero absoluto</span>
+        </button>
+        <button type="button" class="ob-card" data-val="algo">
+          <Icon name="tabler:flame" class="w-6 h-6 text-primary mb-2" />
+          <span class="ob-card-title">Un poco</span>
+          <span class="ob-card-sub">Vi algo, pero quiero bases sólidas</span>
+        </button>
+      </div>
+    </div>
+
+    {/* Paso 2 — motivación */}
+    <div class="ob-step" data-ob-step="2" hidden>
+      <h2 class="font-heading text-2xl md:text-3xl font-semibold tracking-tight text-default mb-2">¿Qué te trajo?</h2>
+      <p class="text-muted mb-6">Para entender por qué te puede servir.</p>
+      <div class="grid sm:grid-cols-2 gap-3" data-ob-mot>
+        <button type="button" class="ob-card" data-val="ia"><Icon name="tabler:robot" class="w-6 h-6 text-primary mb-2" /><span class="ob-card-title">La IA</span><span class="ob-card-sub">Quiero entender y usar esto</span></button>
+        <button type="button" class="ob-card" data-val="trabajo"><Icon name="tabler:briefcase" class="w-6 h-6 text-primary mb-2" /><span class="ob-card-title">Trabajo</span><span class="ob-card-sub">Pensando en un cambio</span></button>
+        <button type="button" class="ob-card" data-val="crear"><Icon name="tabler:bulb" class="w-6 h-6 text-primary mb-2" /><span class="ob-card-title">Crear algo</span><span class="ob-card-sub">Tengo una idea en mente</span></button>
+        <button type="button" class="ob-card" data-val="curiosidad"><Icon name="tabler:mood-smile" class="w-6 h-6 text-primary mb-2" /><span class="ob-card-title">Curiosidad</span><span class="ob-card-sub">Siempre quise probar</span></button>
+      </div>
+    </div>
+
+    {/* Paso 3 — lenguaje */}
+    <div class="ob-step" data-ob-step="3" hidden>
+      <h2 class="font-heading text-2xl md:text-3xl font-semibold tracking-tight text-default mb-2">¿Con qué lenguaje empezás?</h2>
+      <p class="text-muted mb-6">Los dos son ideales para principiantes. Podés cambiar cuando quieras.</p>
+      <div class="grid sm:grid-cols-2 gap-3" data-ob-lang>
+        <button type="button" class="ob-card" data-val="python">
+          <Icon name="tabler:brand-python" class="w-6 h-6 text-primary mb-2" />
+          <span class="ob-card-title">Python <span class="text-primary text-[0.7rem]">· recomendado</span></span>
+          <span class="ob-card-sub">El más legible y amable para empezar</span>
+        </button>
+        <button type="button" class="ob-card" data-val="javascript">
+          <Icon name="tabler:brand-javascript" class="w-6 h-6 text-primary mb-2" />
+          <span class="ob-card-title">JavaScript</span>
+          <span class="ob-card-sub">El lenguaje de la web</span>
+        </button>
+      </div>
+    </div>
+
+    {/* Resultado — la ruta */}
+    <div class="ob-step" data-ob-step="4" hidden>
+      <span class="inline-flex items-center gap-2 font-mono text-[0.7rem] uppercase tracking-[0.18em] text-primary mb-3">
+        <Icon name="tabler:map" class="w-3.5 h-3.5" /> Tu ruta
+      </span>
+      <h2 class="font-heading text-2xl md:text-3xl font-semibold tracking-tight text-default mb-2" data-ob-result-title>
+        Listo, armamos tu camino
+      </h2>
+      <p class="text-muted mb-6" data-ob-result-sub>Seguí los pasos en orden. Cada uno se desbloquea sobre el anterior.</p>
+
+      <ol class="space-y-3 mb-8" data-ob-path></ol>
+
+      <div class="flex flex-wrap gap-3">
+        <a class="btn-primary" data-ob-start href="/">Empezar el paso 1 <Icon name="tabler:arrow-right" class="w-4 h-4 ml-1.5 inline-block" /></a>
+        <a href="/registro" class="inline-flex items-center text-sm rounded-lg border border-[var(--aw-color-border)] hover:border-[var(--aw-color-border-hover)] px-5 py-3 text-default transition-colors">
+          Crear cuenta para guardar progreso
+        </a>
+      </div>
+    </div>
+  </section>
+</Layout>
+
+<style>
+  .ob-card {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    text-align: left;
+    gap: 0.1rem;
+    padding: 1.1rem 1.2rem;
+    border-radius: 14px;
+    border: 1px solid var(--aw-color-border);
+    background: var(--aw-color-bg-surface);
+    cursor: pointer;
+    transition: all 0.16s ease;
+  }
+  .ob-card:hover {
+    border-color: var(--turquoise-border);
+    transform: translateY(-2px);
+    box-shadow: 0 8px 24px var(--turquoise-glow);
+  }
+  .ob-card-title {
+    font-weight: 600;
+    color: var(--aw-color-text-default);
+  }
+  .ob-card-sub {
+    font-size: 0.82rem;
+    color: var(--aw-color-text-muted);
+  }
+  .ob-path-item {
+    display: flex;
+    gap: 1rem;
+    align-items: flex-start;
+    padding: 1rem 1.2rem;
+    border-radius: 14px;
+    border: 1px solid var(--aw-color-border);
+    background: var(--aw-color-bg-surface);
+  }
+  .ob-path-num {
+    flex: 0 0 auto;
+    width: 1.9rem;
+    height: 1.9rem;
+    display: grid;
+    place-items: center;
+    border-radius: 50%;
+    border: 1px solid var(--turquoise-border);
+    background: var(--turquoise-bg);
+    color: var(--aw-color-primary);
+    font-family: var(--font-geist-mono);
+    font-size: 0.8rem;
+  }
+</style>
+
+<script>
+  type Answers = { exp?: string; mot?: string; lang?: string };
+
+  function setup() {
+    const steps = [...document.querySelectorAll<HTMLElement>('.ob-step')];
+    if (!steps.length) return;
+    const dots = [...document.querySelectorAll<HTMLElement>('[data-ob-dot]')];
+    const answers: Answers = {};
+    let cur = 0;
+
+    function show(i: number) {
+      cur = i;
+      steps.forEach((s) => (s.hidden = Number(s.dataset.obStep) !== i));
+      dots.forEach((d, di) => {
+        d.style.background = di <= Math.min(i, 3) ? 'var(--aw-color-primary)' : 'var(--aw-color-border)';
+      });
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    document.querySelector('[data-ob-next]')?.addEventListener('click', () => show(1));
+
+    function pick(group: string, val: string) {
+      (answers as Record<string, string>)[group] = val;
+      if (group === 'exp') show(2);
+      else if (group === 'mot') show(3);
+      else if (group === 'lang') finish();
+    }
+    document.querySelectorAll<HTMLElement>('[data-ob-exp] .ob-card').forEach((b) =>
+      b.addEventListener('click', () => pick('exp', b.dataset.val || ''))
+    );
+    document.querySelectorAll<HTMLElement>('[data-ob-mot] .ob-card').forEach((b) =>
+      b.addEventListener('click', () => pick('mot', b.dataset.val || ''))
+    );
+    document.querySelectorAll<HTMLElement>('[data-ob-lang] .ob-card').forEach((b) =>
+      b.addEventListener('click', () => pick('lang', b.dataset.val || ''))
+    );
+
+    function finish() {
+      const lang = answers.lang === 'javascript' ? 'javascript' : 'python';
+      const langTitle = lang === 'javascript' ? 'JavaScript desde cero' : 'Python desde cero';
+      try {
+        localStorage.setItem('pg:onboarded', '1');
+        localStorage.setItem('pg:lang', lang);
+      } catch {
+        /* noop */
+      }
+
+      const motMsg: Record<string, string> = {
+        ia: 'Como te trajo la IA, vas a entender de verdad qué hace por dentro y cómo dirigirla.',
+        trabajo: 'Buen momento: con bases sólidas y criterio para usar IA, tenés una ventaja real.',
+        crear: 'Perfecto: vas a aprender lo justo para empezar a construir tu idea.',
+        curiosidad: 'La curiosidad es el mejor combustible. Vamos paso a paso.',
+      };
+      const sub = document.querySelector('[data-ob-result-sub]');
+      if (sub) sub.textContent = motMsg[answers.mot || 'curiosidad'] || motMsg.curiosidad;
+
+      const path = [
+        {
+          n: 1,
+          title: 'Entender la nueva forma de programar',
+          sub: 'Curso "Programar en la era de la IA" — sin código todavía, solo las ideas clave.',
+          href: '/ia/la-nueva-forma',
+        },
+        {
+          n: 2,
+          title: `Aprender tu primer lenguaje: ${lang === 'javascript' ? 'JavaScript' : 'Python'}`,
+          sub: `Curso "${langTitle}" — variables, decisiones, bucles y funciones, escribiendo código real.`,
+          href: `/${lang}/hola-mundo`,
+        },
+        {
+          n: 3,
+          title: 'Leer, depurar y verificar código',
+          sub: 'Ya con bases, volvés a la IA para revisar y verificar lo que genera. Ahí está el oro.',
+          href: '/ia/predecir-salida',
+        },
+      ];
+      const list = document.querySelector('[data-ob-path]');
+      if (list) {
+        list.replaceChildren();
+        path.forEach((p) => {
+          const li = document.createElement('li');
+          li.className = 'ob-path-item';
+          const num = document.createElement('span');
+          num.className = 'ob-path-num';
+          num.textContent = String(p.n);
+          const body = document.createElement('div');
+          const t = document.createElement('a');
+          t.href = p.href;
+          t.className = 'block font-semibold text-default hover:text-primary transition-colors';
+          t.textContent = p.title;
+          const s = document.createElement('p');
+          s.className = 'text-[0.85rem] text-muted mt-0.5';
+          s.textContent = p.sub;
+          body.append(t, s);
+          li.append(num, body);
+          list.appendChild(li);
+        });
+      }
+      const startBtn = document.querySelector<HTMLAnchorElement>('[data-ob-start]');
+      if (startBtn) startBtn.href = '/ia/la-nueva-forma';
+      show(4);
+    }
+  }
+  document.addEventListener('astro:page-load', setup);
+  if (document.readyState !== 'loading') setup();
+  else document.addEventListener('DOMContentLoaded', setup);
+</script>

@@ -164,11 +164,12 @@ const nav = [
         class="max-w-6xl mx-auto px-4 sm:px-6 py-8 flex flex-col sm:flex-row items-center justify-between gap-3 text-sm text-[var(--aw-color-text-tertiary)]"
       >
         <span class="font-mono">Programerso</span>
-        <nav class="flex items-center gap-4" aria-label="Pie">
-          <a href="/" class="hover:text-default transition-colors">Cursos</a>
+        <nav class="flex flex-wrap items-center justify-center gap-x-4 gap-y-1" aria-label="Pie">
+          <a href="/empezar" class="hover:text-default transition-colors">Empezar</a>
           <a href="/progreso" class="hover:text-default transition-colors">Progreso</a>
           <a href="/glosario" class="hover:text-default transition-colors">Glosario</a>
           <a href="/playground" class="hover:text-default transition-colors">Playground</a>
+          <a href="/ajustes" class="hover:text-default transition-colors">Ajustes</a>
         </nav>
         <span>Aprendé programando de verdad, en tu navegador.</span>
       </div>
@@ -308,6 +309,7 @@ const nav = [
       // HUD de progreso (chip del header) + celebración (toasts + confetti).
       import { getLevelInfo, liveStreak, ACHIEVEMENTS, getSettings, getAvatar } from '~/lib/store';
       import { currentUser } from '~/lib/auth';
+      import { playLevelUp } from '~/lib/sound';
 
       function paintAccount() {
         const acc = document.querySelector<HTMLAnchorElement>('[data-account]');
@@ -463,20 +465,32 @@ const nav = [
             const li = getLevelInfo();
             toast('🎉', `¡Nivel ${li.level}!`, `Ahora sos ${li.rank}`, '', 4200);
             confetti();
+            playLevelUp();
           }
         } else if (detail.kind === 'achievement') {
           const a = ACHIEVEMENTS.find((x) => x.id === detail.id);
           toast('🏆', 'Logro desbloqueado', a ? a.title : '¡Bien!', '', 4200);
           confetti();
+          playLevelUp();
           paintChip();
         } else if (detail.kind === 'streak' || detail.kind === 'lesson-done') {
           paintChip();
         }
       }
 
+      function applySettings() {
+        try {
+          const s = getSettings();
+          document.documentElement.style.fontSize = `${Math.round(100 * (s.fontScale || 1))}%`;
+        } catch {
+          /* noop */
+        }
+      }
+
       function setup() {
         paintChip();
         paintAccount();
+        applySettings();
         window.removeEventListener('pg:update', onUpdate);
         window.addEventListener('pg:update', onUpdate);
       }

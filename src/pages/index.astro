@@ -51,8 +51,8 @@ const levelLabels: Record<string, string> = {
       que hoy hace la diferencia: leer, depurar y trabajar con la IA. Sin instalar nada.
     </p>
     <div class="flex flex-wrap items-center justify-center gap-3">
-      <a href={featured ? `/${featured.slug}` : '/javascript'} class="btn-primary">
-        Empezar gratis
+      <a href="/empezar" class="btn-primary" data-home-cta>
+        Empezá de cero
         <Icon name="tabler:arrow-right" class="w-4 h-4 ml-1.5 inline-block" />
       </a>
       <a
@@ -76,6 +76,41 @@ const levelLabels: Record<string, string> = {
           </div>
         ))
       }
+    </div>
+
+    {/* ── Ruta para empezar ──────────────────────────────────── */}
+    <div class="rounded-2xl border border-[var(--aw-color-border)] bg-[var(--aw-color-bg-surface)] p-6 sm:p-8 mb-10">
+      <div class="flex items-center justify-between gap-4 flex-wrap mb-5">
+        <div>
+          <span class="inline-flex items-center gap-2 font-mono text-[0.7rem] uppercase tracking-[0.16em] text-primary mb-1.5">
+            <Icon name="tabler:map" class="w-3.5 h-3.5" /> Ruta recomendada
+          </span>
+          <h2 class="font-heading text-2xl font-semibold tracking-tight text-default">¿Nunca programaste? Empezá por acá</h2>
+        </div>
+        <a href="/empezar" class="text-sm text-primary hover:underline shrink-0">Armá tu ruta personalizada →</a>
+      </div>
+      <ol class="grid md:grid-cols-3 gap-4">
+        <li class="relative rounded-xl border border-[var(--aw-color-border)] bg-[var(--aw-color-bg-page)] p-5">
+          <span class="font-mono text-[0.7rem] text-primary">PASO 01</span>
+          <h3 class="font-semibold text-default mt-1 mb-1">Entendé la nueva forma</h3>
+          <p class="text-[0.84rem] text-muted leading-relaxed mb-3">Qué cambió con la IA y cuál es tu rol. Sin código todavía: solo las ideas.</p>
+          <a href="/ia/la-nueva-forma" class="text-[0.84rem] text-primary hover:underline">Empezar →</a>
+        </li>
+        <li class="relative rounded-xl border border-[var(--aw-color-border)] bg-[var(--aw-color-bg-page)] p-5">
+          <span class="font-mono text-[0.7rem] text-primary">PASO 02</span>
+          <h3 class="font-semibold text-default mt-1 mb-1">Aprendé un lenguaje</h3>
+          <p class="text-[0.84rem] text-muted leading-relaxed mb-3">Python o JavaScript desde cero: variables, decisiones, bucles y funciones.</p>
+          <a href="/python/hola-mundo" class="text-[0.84rem] text-primary hover:underline">Python</a>
+          <span class="text-[var(--aw-color-text-tertiary)] mx-1">·</span>
+          <a href="/javascript/hola-mundo" class="text-[0.84rem] text-primary hover:underline">JavaScript</a>
+        </li>
+        <li class="relative rounded-xl border border-[var(--aw-color-border)] bg-[var(--aw-color-bg-page)] p-5">
+          <span class="font-mono text-[0.7rem] text-primary">PASO 03</span>
+          <h3 class="font-semibold text-default mt-1 mb-1">Leé, depurá y verificá</h3>
+          <p class="text-[0.84rem] text-muted leading-relaxed mb-3">Con bases, volvés a la IA para revisar y verificar lo que genera.</p>
+          <a href="/ia/predecir-salida" class="text-[0.84rem] text-primary hover:underline">Continuar →</a>
+        </li>
+      </ol>
     </div>
 
     {/* ── Curso destacado ────────────────────────────────────── */}
